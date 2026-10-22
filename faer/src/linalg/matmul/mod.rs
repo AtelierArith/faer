@@ -1401,16 +1401,14 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 				return;
 			}
 		}
-		// The budget the kernel below is handed. It threads whatever it is given and has no
-		// work floor of its own, so the decision is made here, in *flops* rather than in the
-		// dtype's byte width: a complex MAC is four real MACs, and the work a region has to
-		// buy is the same either way. The floor is the one the `gemm` crate applies to its own
-		// kernels (`48 * 48 * 256` MACs, f64) expressed in flops, so a shape the generic kernel
-		// would run sequentially is not handed a budget here either. Below it a region costs
-		// more than the multiplication: f64 `32^3` (65 ki flops) is 2.3 us serial and 12.0 us
-		// at eight threads, `64^3` (524 ki flops) keeps its best time but pays 1.2-1.4x in the
-		// median; `96^3` (1.8 Mflops) is 2x faster at eight threads, and c64 `64^3` (2.1 Mflops)
-		// 2x, which is why the floor cannot be a MAC count alone.
+		// The width the column split below may use. A shape below the `gemm` crate's own kernel
+		// floor is cheaper to multiply than to hand out, so it is not split: f64 `32^3` (65 ki
+		// flops) is 2.3 us serial and 12.0 us at eight threads, `64^3` (524 ki flops) keeps
+		// its best time but pays 1.2-1.4x in the median; `96^3` (1.8 Mflops) is 2x faster at
+		// eight threads, and c64 `64^3` (2.1 Mflops) 2x, which is why the floor cannot be a MAC
+		// count alone. The floor is in *flops*, not bytes: a complex MAC is four real MACs.
+		// The kernel itself is never handed this: `Par::Team` (`gemm_team`) is the only parallel
+		// route and the kernel below it is called with one thread.
 		let budget = if (*M)
 			.saturating_mul(*N)
 			.saturating_mul(*K)
@@ -1595,12 +1593,12 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 		// Only the two dtypes the campaign measures. `f32` and `c32` have the same shape of kernel but
 		// no measurement behind them, so they keep the kernel's own decomposition until they have one.
 		#[cfg(feature = "rayon")]
-		if const { T::IS_NATIVE_F64 || T::IS_NATIVE_C64 } {
+		if const { T::IS_NATIVE_F64 || T::IS_NATIVE_C64 || T::IS_NATIVE_F32 || T::IS_NATIVE_C32 } {
 			if let Some(slabs) = column_slab_count(*M, *N, budget) {
-				// This destination is too short to fill the budget with rows, so the native
+				// This destination is too short to fill the budget with rows, so the fused
 				// kernel's per-tile queue would cost more than the tiles it hands out: split
-				// the columns, one slab per thread, and recurse with a budget of one so that
-				// each slab ends on the kernel's fused serial path.
+				// the columns, one slab per participant, and recurse on `Par::Seq` so each
+				// slab is one kernel call.
 				use rayon::prelude::*;
 				crate::utils::thread::for_each(
 					par,
@@ -2291,7 +2289,36 @@ mod tests {
 				}
 			}
 		}
+		// `f32` because the gate admits it without a campaign cell behind it.
 		let (m, k, n) = (16usize, 512usize, 240usize);
+		let lhs = Mat::<f32>::from_fn(m, k, |i, j| ((i * 7 + j * 13) % 11) as f32 * 0.5 - 2.5);
+		let rhs = Mat::<f32>::from_fn(k, n, |i, j| ((i * 5 + j * 3) % 7) as f32 * 0.25 - 1.0);
+		let mut sequential = Mat::<f32>::zeros(m, n);
+		let mut threaded = Mat::<f32>::zeros(m, n);
+		matmul(
+			sequential.as_mut(),
+			Accum::Replace,
+			lhs.as_ref(),
+			rhs.as_ref(),
+			1.0,
+			Par::Seq,
+		);
+		crate::team::with_team(8, |par| {
+			matmul(
+				threaded.as_mut(),
+				Accum::Replace,
+				lhs.as_ref(),
+				rhs.as_ref(),
+				1.0,
+				par,
+			)
+		});
+		for i in 0..m {
+			for j in 0..n {
+				let d = (sequential[(i, j)] - threaded[(i, j)]).abs();
+				assert!(d < 1e-3, "f32 ({i}, {j}): {d}");
+			}
+		}
 		let lhs = Mat::<c64>::from_fn(m, k, |i, j| {
 			c64::new(((i + 2 * j) % 7) as f64 * 0.5, ((3 * i + j) % 5) as f64 * 0.25)
 		});
