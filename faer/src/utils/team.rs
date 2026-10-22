@@ -1610,7 +1610,11 @@ mod tests {
 	#[test]
 	fn the_team_floor_is_per_dtype() {
 		// the grid of `gemm_tiled` (no x86 kernel) or the kernel on the team's members
-		let engaged = |st: &stats::Stats| st.gemm_tiled + st.gemm_team_kernel;
+		// a short destination takes the column-slab split of `matmul_imp` before the team route,
+		// and that split is a `split` of the team (one slab per participant)
+		let engaged = |st: &stats::Stats| {
+			st.gemm_tiled + st.gemm_team_kernel + st.split.iter().sum::<usize>()
+		};
 		let before = |m: usize, n: usize, k: usize, par: &mut Par<'_>, cplx: bool| {
 			stats::enable(true);
 			let _ = stats::take();
