@@ -80,7 +80,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -91,7 +91,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -652,7 +652,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -790,7 +790,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -880,125 +880,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
-]
-
-[[package]]
-name = "gemm"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa0673db364b12263d103b68337a68fbecc541d6f6b61ba72fe438654709eacb"
-dependencies = [
- "dyn-stack",
- "gemm-c32",
- "gemm-c64",
- "gemm-common",
- "gemm-f16",
- "gemm-f32",
- "gemm-f64",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-c32"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "086936dbdcb99e37aad81d320f98f670e53c1e55a98bee70573e83f95beb128c"
-dependencies = [
- "dyn-stack",
- "gemm-common",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-c64"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20c8aeeeec425959bda4d9827664029ba1501a90a0d1e6228e48bef741db3a3f"
-dependencies = [
- "dyn-stack",
- "gemm-common",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-common"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88027625910cc9b1085aaaa1c4bc46bb3a36aad323452b33c25b5e4e7c8e2a3e"
-dependencies = [
- "bytemuck",
- "dyn-stack",
- "half",
- "libm",
- "num-complex",
- "num-traits",
- "once_cell",
- "paste",
- "pulp",
- "raw-cpuid",
- "rayon",
- "seq-macro",
- "sysctl",
-]
-
-[[package]]
-name = "gemm-f16"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3df7a55202e6cd6739d82ae3399c8e0c7e1402859b30e4cb780e61525d9486e"
-dependencies = [
- "dyn-stack",
- "gemm-common",
- "gemm-f32",
- "half",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "rayon",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-f32"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02e0b8c9da1fbec6e3e3ab2ce6bc259ef18eb5f6f0d3e4edf54b75f9fd41a81c"
-dependencies = [
- "dyn-stack",
- "gemm-common",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-f64"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "056131e8f2a521bfab322f804ccd652520c79700d81209e9d9275bbdecaadc6a"
-dependencies = [
- "dyn-stack",
- "gemm-common",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
 ]
 
 [[package]]
@@ -1664,7 +1545,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2317,7 +2198,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2690,7 +2571,6 @@ dependencies = [
  "eigen-bench-setup",
  "equator 0.6.0",
  "flate2",
- "gemm",
  "generativity",
  "intel-mkl-src",
  "itertools 0.14.0",
@@ -2719,6 +2599,7 @@ dependencies = [
  "simba",
  "suitesparse_sys",
  "t4a-faer-traits",
+ "t4a-gemm",
  "t4a-private-gemm-x86",
  "tar",
  "threadteam",
@@ -2738,6 +2619,118 @@ dependencies = [
  "pulp",
  "qd",
  "reborrow",
+]
+
+[[package]]
+name = "t4a-gemm"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "seq-macro",
+ "t4a-gemm-c32",
+ "t4a-gemm-c64",
+ "t4a-gemm-common",
+ "t4a-gemm-f16",
+ "t4a-gemm-f32",
+ "t4a-gemm-f64",
+]
+
+[[package]]
+name = "t4a-gemm-c32"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "seq-macro",
+ "t4a-gemm-common",
+]
+
+[[package]]
+name = "t4a-gemm-c64"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "seq-macro",
+ "t4a-gemm-common",
+]
+
+[[package]]
+name = "t4a-gemm-common"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "bytemuck",
+ "dyn-stack",
+ "half",
+ "libm",
+ "num-complex",
+ "num-traits",
+ "once_cell",
+ "paste",
+ "pulp",
+ "raw-cpuid",
+ "rayon",
+ "seq-macro",
+ "sysctl",
+]
+
+[[package]]
+name = "t4a-gemm-f16"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "half",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "rayon",
+ "seq-macro",
+ "t4a-gemm-common",
+ "t4a-gemm-f32",
+]
+
+[[package]]
+name = "t4a-gemm-f32"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "seq-macro",
+ "t4a-gemm-common",
+]
+
+[[package]]
+name = "t4a-gemm-f64"
+version = "0.20.0"
+source = "git+https://github.com/tensor4all/t4a-gemm?rev=ae760b30b11ecd6b881a0ce07697377a1e07c6c1#ae760b30b11ecd6b881a0ce07697377a1e07c6c1"
+dependencies = [
+ "dyn-stack",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "raw-cpuid",
+ "seq-macro",
+ "t4a-gemm-common",
 ]
 
 [[package]]
@@ -2777,7 +2770,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3235,7 +3228,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
