@@ -2299,7 +2299,8 @@ fn aggressive_early_deflation<T: RealField>(
 			}
 		}
 	}
-	let nd = &ihi - &kwbot;
+	// Fully deflated: kwbot is the kwtop-1 sentinel (usize::MAX at row zero) -- see #254
+	let nd = if kwbot == kwtop.wrapping_sub(1) { jw } else { &ihi - &kwbot };
 	let ns = &jw - &nd;
 	let mut k = kwtop;
 	while k <= ihi {
