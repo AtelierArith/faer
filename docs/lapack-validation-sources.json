@@ -588,6 +588,11 @@
       "path": "SRC/zunglq.f",
       "sha": "aca6bc6e72b564acf0a0045c79778577cfa520d8",
       "lines": 286
+    },
+    {
+      "path": "EIG/dget54.f",
+      "sha": "5ea5933102de82fc1cba01d3698d1570f0f9d67d",
+      "lines": 246
     }
   ]
 }

@@ -14,6 +14,9 @@ spec.loader.exec_module(v)
 
 
 class Runner(unittest.TestCase):
+    def test_qz_reorder_selection(self):
+        self.assertEqual(v.classify("linalg::gevd::reorder::lapack::f64::lapack_qz_reorder_range"), "qz_reorder")
+
     def test_classification_and_empty_selection(self):
         self.assertEqual(v.classify('linalg::evd::lapack::f64::lapack_schur_cases'), 'schur')
         self.assertEqual(v.classify('linalg::evd::lapack::f64::lapack_schur_reorder_cases'), 'schur_reorder')

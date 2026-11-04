@@ -24,6 +24,14 @@ use crate::internal_prelude::*;
 use complex::Complex;
 use equator::assert;
 pub use linalg::evd::ComputeEigenvectors;
+mod reorder;
+mod schur_eigenvalues;
+pub use reorder::{
+	SchurReorderError, reorder_schur_cplx, reorder_schur_real,
+	reorder_schur_scratch,
+};
+pub use schur_eigenvalues::{SchurEigenvalueError,schur_eigenvalues_real};
+
 /// eigendecomposition error
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum GevdError {

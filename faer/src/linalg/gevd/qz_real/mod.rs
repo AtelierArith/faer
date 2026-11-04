@@ -2540,7 +2540,7 @@ fn aggressive_early_deflation<T: RealField>(
 	}
 	(ns, nd)
 }
-fn swap_qz<T: RealField>(
+pub(super) fn swap_qz<T: RealField>(
 	mut A: MatMut<'_, T>,
 	mut B: MatMut<'_, T>,
 	mut Q: Option<MatMut<'_, T>>,
