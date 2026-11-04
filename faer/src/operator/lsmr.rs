@@ -397,8 +397,8 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 		}
 		if norm <= threshold {
 			return Ok(LsmrInfo {
-				abs_residual: zero::<T::Real>(),
-				rel_residual: zero::<T::Real>(),
+				rel_residual: &norm / &norm_ref,
+				abs_residual: norm,
 				iter_count: 0,
 				stopped: false,
 				non_exhaustive: NonExhaustive(()),
