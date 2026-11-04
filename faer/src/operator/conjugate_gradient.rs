@@ -25,6 +25,8 @@ pub struct CgInfo<T: RealField> {
 	pub rel_residual: T,
 	/// number of iterations executed by the algorithm
 	pub iter_count: usize,
+	/// whether the callback requested an early stop (not a convergence claim)
+	pub stopped: bool,
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
 }
@@ -103,15 +105,24 @@ pub fn conjugate_gradient_scratch<T: ComplexField>(
 ///
 /// # note
 /// this function is also optimized for a rhs with multiple columns
+///
+/// The callback runs after an update and may return `()` to continue or
+/// `core::ops::ControlFlow<()>` to request a stop. A stopped iterate remains in
+/// `out`; the returned info has `stopped = true` and does not imply convergence.
+/// Initial convergence needs no update and does not call the callback.
+///
+/// # Errors
+/// Returns the solver's existing numerical breakdown or nonconvergence error
+/// when iteration fails before a callback stop or convergence.
 #[inline]
 #[track_caller]
-pub fn conjugate_gradient<T: ComplexField>(
+pub fn conjugate_gradient<T: ComplexField, C: IterationControl>(
 	out: MatMut<'_, T>,
 	precond: impl Precond<T>,
 	mat: impl LinOp<T>,
 	rhs: MatRef<'_, T>,
 	params: CgParams<T::Real>,
-	callback: impl FnMut(MatRef<'_, T>),
+	mut callback: impl FnMut(MatRef<'_, T>) -> C,
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<CgInfo<T::Real>, CgError<T::Real>> {
@@ -122,7 +133,7 @@ pub fn conjugate_gradient<T: ComplexField>(
 		A: &dyn LinOp<T>,
 		b: MatRef<'_, T>,
 		params: CgParams<T::Real>,
-		callback: &mut dyn FnMut(MatRef<'_, T>),
+		callback: &mut dyn FnMut(MatRef<'_, T>) -> bool,
 		mut par: Par,
 		mut stack: &mut MemStack,
 	) -> Result<CgInfo<T::Real>, CgError<T::Real>> {
@@ -136,6 +147,7 @@ pub fn conjugate_gradient<T: ComplexField>(
 				abs_residual: zero::<T::Real>(),
 				rel_residual: zero::<T::Real>(),
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -180,6 +192,7 @@ pub fn conjugate_gradient<T: ComplexField>(
 				rel_residual: &abs_residual / b_norm,
 				abs_residual,
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -284,7 +297,16 @@ pub fn conjugate_gradient<T: ComplexField>(
 					-one::<T>(),
 					par.reborrow(),
 				);
-				callback(x.rb());
+				if callback(x.rb()) {
+					let abs_residual = r.norm_l2();
+					return Ok(CgInfo {
+						rel_residual: &abs_residual / b_norm,
+						abs_residual,
+						iter_count: iter + 1,
+						stopped: true,
+						non_exhaustive: NonExhaustive(()),
+					});
+				}
 			}
 			// the residual of the current iterate: `NoConvergence` reports this
 			// one, not `|b|`
@@ -294,6 +316,7 @@ pub fn conjugate_gradient<T: ComplexField>(
 					rel_residual: &abs_residual / b_norm,
 					abs_residual,
 					iter_count: iter + 1,
+					stopped: false,
 					non_exhaustive: NonExhaustive(()),
 				});
 			}
@@ -380,7 +403,7 @@ pub fn conjugate_gradient<T: ComplexField>(
 		&mat,
 		rhs,
 		params,
-		&mut { callback },
+		&mut |x| callback(x).should_stop(),
 		par,
 		stack,
 	)

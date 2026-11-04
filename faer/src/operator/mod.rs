@@ -20,6 +20,47 @@ pub enum InitialGuessStatus {
 	#[default]
 	MaybeNonZero,
 }
+/// Return value of an iterative solver callback.
+///
+/// Returning `()` continues the iteration. Returning `ControlFlow::Break(())`
+/// stops immediately after the current update; `ControlFlow::Continue(())`
+/// continues. A requested stop is reported by the solver info's `stopped` field,
+/// independently of whether the current residual meets the convergence tolerance.
+///
+/// ```
+/// use core::ops::ControlFlow;
+/// use faer::{Mat, Par, matrix_free::{conjugate_gradient as cg, IdentityPrecond}};
+/// use faer::dyn_stack::{MemBuffer, MemStack};
+/// let a = Mat::<f64>::from_fn(2, 2, |i, j| if i == j { (i + 1) as f64 } else { 0.0 });
+/// let b = Mat::<f64>::from_fn(2, 1, |_, _| 1.0);
+/// let mut x = Mat::<f64>::zeros(2, 1);
+/// let m = IdentityPrecond { dim: 2 };
+/// let mut mem = MemBuffer::new(cg::conjugate_gradient_scratch(m, &a, 1, Par::Seq.shape()));
+/// let info = cg::conjugate_gradient(x.as_mut(), m, &a, b.as_ref(), Default::default(),
+///     |_| ControlFlow::Break(()), Par::Seq, MemStack::new(&mut mem)).unwrap();
+/// assert!(info.stopped);
+/// assert_eq!(info.iter_count, 1);
+/// assert!((&a * &x - &b).norm_l2() > 0.1);
+/// ```
+///
+/// Explicit scalar turbofish calls use `solver::<T, _>` to infer the callback
+/// return type. Ordinary inferred calls with `|_| {}` remain valid.
+pub trait IterationControl {
+	/// Whether the current iterate should be returned without another update.
+	fn should_stop(self) -> bool;
+}
+impl IterationControl for () {
+	#[inline]
+	fn should_stop(self) -> bool {
+		false
+	}
+}
+impl IterationControl for core::ops::ControlFlow<()> {
+	#[inline]
+	fn should_stop(self) -> bool {
+		self.is_break()
+	}
+}
 /// identity preconditioner, no-op for most operations
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IdentityPrecond {

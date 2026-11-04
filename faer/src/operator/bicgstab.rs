@@ -89,6 +89,8 @@ pub struct BicgInfo<T> {
 	pub rel_residual: T,
 	/// number of iterations executed by the algorithm
 	pub iter_count: usize,
+	/// whether the callback requested an early stop (not a convergence claim)
+	pub stopped: bool,
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
 }
@@ -107,15 +109,24 @@ pub enum BicgError<T> {
 ///
 /// # note
 /// this function is also optimized for a rhs with multiple columns
+///
+/// The callback runs after an update and may return `()` to continue or
+/// `core::ops::ControlFlow<()>` to request a stop. A stopped iterate remains in
+/// `out`; the returned info has `stopped = true` and does not imply convergence.
+/// Initial convergence needs no update and does not call the callback.
+///
+/// # Errors
+/// Returns the solver's existing numerical breakdown or nonconvergence error
+/// when iteration fails before a callback stop or convergence.
 #[track_caller]
-pub fn bicgstab<T: ComplexField>(
+pub fn bicgstab<T: ComplexField, C: IterationControl>(
 	out: MatMut<'_, T>,
 	left_precond: impl Precond<T>,
 	right_precond: impl Precond<T>,
 	mat: impl LinOp<T>,
 	rhs: MatRef<'_, T>,
 	params: BicgParams<T::Real>,
-	callback: impl FnMut(MatRef<'_, T>),
+	mut callback: impl FnMut(MatRef<'_, T>) -> C,
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<BicgInfo<T::Real>, BicgError<T::Real>> {
@@ -127,7 +138,7 @@ pub fn bicgstab<T: ComplexField>(
 		mat: &dyn LinOp<T>,
 		rhs: MatRef<'_, T>,
 		params: BicgParams<T::Real>,
-		callback: &mut dyn FnMut(MatRef<'_, T>),
+		callback: &mut dyn FnMut(MatRef<'_, T>) -> bool,
 		mut par: Par,
 		stack: &mut MemStack,
 	) -> Result<BicgInfo<T::Real>, BicgError<T::Real>> {
@@ -146,6 +157,7 @@ pub fn bicgstab<T: ComplexField>(
 				abs_residual: zero::<T::Real>(),
 				rel_residual: zero::<T::Real>(),
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -189,6 +201,7 @@ pub fn bicgstab<T: ComplexField>(
 				rel_residual: &abs_residual / b_norm,
 				abs_residual,
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -328,6 +341,7 @@ pub fn bicgstab<T: ComplexField>(
 					rel_residual: &s_norm / b_norm,
 					abs_residual: s_norm,
 					iter_count: iter + 1,
+					stopped: callback(x.rb()),
 					non_exhaustive: NonExhaustive(()),
 				});
 			}
@@ -374,13 +388,22 @@ pub fn bicgstab<T: ComplexField>(
 			}
 			z!(&mut x, &z).for_each(|uz!(x, z)| *x += w * z);
 			z!(&mut p, &v).for_each(|uz!(p, v)| *p -= w * v);
-			callback(x.rb());
+			if callback(x.rb()) {
+				return Ok(BicgInfo {
+					rel_residual: &norm / b_norm,
+					abs_residual: norm,
+					iter_count: iter + 1,
+					stopped: true,
+					non_exhaustive: NonExhaustive(()),
+				});
+			}
 			abs_residual = norm.copy();
 			if norm < threshold {
 				return Ok(BicgInfo {
 					rel_residual: &norm / b_norm,
 					abs_residual: norm,
 					iter_count: iter + 1,
+					stopped: false,
 					non_exhaustive: NonExhaustive(()),
 				});
 			}
@@ -441,7 +464,7 @@ pub fn bicgstab<T: ComplexField>(
 		&mat,
 		rhs,
 		params,
-		&mut { callback },
+		&mut |x| callback(x).should_stop(),
 		par,
 		stack,
 	)
