@@ -69,3 +69,18 @@ the full feature/MSRV/no_std matrix and coverage. The local checks are scoped to
 the changed generalized-Hessenberg/QZ paths; unrelated numerical families are
 unchanged. Colmat retains its current wrapper correction until merged upstream
 fixes and the original reproductions plus wrapper regressions pass.
+
+
+## Parent regression integration
+
+The updated #255 branch adds its six-dimension public window-32 regression and
+runs both sentinel/query tests in CI. Integration preserves those checks and
+this candidate's rotation/workspace checks in the same CI step. Production
+`faer/src` and `faer-traits/src` trees remain identical to 12bd4bc; the parent
+update changes only tests/workflow. No gate, tolerance or timeout is weakened.
+
+The integrated focused run passes eight tests: four rotation tests, the row-zero
+regression, the six-dimension window-32 query regression and both real-precision
+exact-query suites. Recursive cases retain their opt-in scheduled coverage; the
+unchanged production code was already validated for those cases and on both
+aarch64 numerical jobs. The new head still runs its required hosted checks.
