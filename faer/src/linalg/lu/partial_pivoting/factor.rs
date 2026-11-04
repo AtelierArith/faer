@@ -204,7 +204,6 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 		let (rows1, cols1, b) = (A11.nrows(), A11.ncols(), A10.ncols());
 		let width = trailing_update_width::<T>(&par, params.par_threshold, rows1, cols1, b);
 		with_width(par.reborrow(), width, |mut par_here| {
-	#[cfg(feature = "rayon")]
 			{
 				linalg::triangular_solve::solve_unit_lower_triangular_in_place(
 					A00.rb(),

@@ -369,3 +369,9 @@ It carries the fix for tensor4all/faer#200 (fresh matmul took the x86 AVX2 GEMM 
 2.2x slower and with different last bits than the replace path); the evidence and limits are in its
 ledger row and `docs/worklogs/2026-11-03-matmul-uninit-thin.md`. `n = 1` is unchanged and remains a
 separate decision recorded in #200.
+
+## Sparse LU without Rayon (#236)
+
+Fix: execute the recursive dense panel triangular solve with every feature set.
+Regression: deterministic saved sparse LU residual across all algorithm choices.
+Status: candidate, no performance path change for Rayon builds.
