@@ -129,6 +129,93 @@ pub mod supernodal {
 			self.ncols
 		}
 
+		/// Materializes the saved unit lower and upper factors as CSC matrices.
+		///
+		/// # Errors
+		/// Returns an allocation or sparse index capacity error if the output cannot be built.
+		pub(super) fn factors(
+			&self,
+		) -> Result<
+			(SparseColMat<I, T>, SparseColMat<I, T>),
+			crate::sparse::CreationError,
+		>
+		where
+			T: ComplexField,
+		{
+			let mut lower = alloc::vec::Vec::new();
+			let mut upper = alloc::vec::Vec::new();
+			lower
+				.try_reserve(self.l_val.len())
+				.map_err(FaerError::from)?;
+			upper
+				.try_reserve(
+					self.l_val
+						.len()
+						.checked_add(self.ut_val.len())
+						.ok_or(FaerError::IndexOverflow)?,
+				)
+				.map_err(FaerError::from)?;
+			for s in 0..self.nsupernodes {
+				let begin = self.supernode_ptr[s].zx();
+				let width = self.supernode_ptr[s + 1].zx() - begin;
+				let rows = &self.l_row_idx[self.l_col_ptr_for_row_idx[s].zx()
+					..self.l_col_ptr_for_row_idx[s + 1].zx()];
+				let vals = &self.l_val[self.l_col_ptr_for_val[s].zx()
+					..self.l_col_ptr_for_val[s + 1].zx()];
+				for j in 0..width {
+					for (i, &row) in rows.iter().enumerate() {
+						let row = if i < width {
+							I::truncate(begin + i)
+						} else {
+							row
+						};
+						let col = I::truncate(begin + j);
+						if i > j {
+							lower.push(Triplet {
+								row,
+								col,
+								val: copy(&vals[i + j * rows.len()]),
+							});
+						} else if i == j {
+							lower.push(Triplet {
+								row,
+								col,
+								val: one::<T>(),
+							});
+						}
+						if i <= j {
+							upper.push(Triplet {
+								row,
+								col,
+								val: copy(&vals[i + j * rows.len()]),
+							});
+						}
+					}
+				}
+				let cols = &self.ut_row_idx[self.ut_col_ptr_for_row_idx[s].zx()
+					..self.ut_col_ptr_for_row_idx[s + 1].zx()];
+				let vals = &self.ut_val[self.ut_col_ptr_for_val[s].zx()
+					..self.ut_col_ptr_for_val[s + 1].zx()];
+				for j in 0..width {
+					for (i, &col) in cols.iter().enumerate() {
+						upper.push(Triplet {
+							row: I::truncate(begin + j),
+							col,
+							val: copy(&vals[i + j * cols.len()]),
+						});
+					}
+				}
+			}
+			Ok((
+				SparseColMat::try_new_from_triplets(
+					self.nrows, self.ncols, &lower,
+				)?,
+				SparseColMat::try_new_from_triplets(
+					self.nrows, self.ncols, &upper,
+				)?,
+			))
+		}
+
 		/// returns the number of supernodes
 		#[inline]
 		pub fn n_supernodes(&self) -> usize {
@@ -159,7 +246,12 @@ pub mod supernodal {
 			));
 			let mut X = rhs;
 			crate::perm::permute_rows_in_place(X.rb_mut(), row_perm, stack);
-			self.l_solve_in_place_with_conj(conj_lhs, X.rb_mut(), par.reborrow(), stack);
+			self.l_solve_in_place_with_conj(
+				conj_lhs,
+				X.rb_mut(),
+				par.reborrow(),
+				stack,
+			);
 			self.u_solve_in_place_with_conj(conj_lhs, X.rb_mut(), par, stack);
 			crate::perm::permute_rows_in_place(
 				X.rb_mut(),
@@ -1887,6 +1979,63 @@ impl<'a, I: Index, T> LuRef<'a, I, T> {
 			_ => panic!("incompatible symbolic and numeric variants"),
 		}
 		Self { symbolic, numeric }
+	}
+
+	/// Materializes owned CSC factors satisfying `L * U = A[p, q]`.
+	/// `p` and `q` are the forward row and column permutations.
+	///
+	/// # Errors
+	/// Returns an allocation or index capacity error if output construction fails.
+
+	/// # Examples
+	/// ```
+	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
+	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
+	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
+	/// let owner = a.sp_lu(Par::Seq)?;
+	/// let view = owner.as_ref();
+	/// let (l, u) = view.factors()?;
+	/// assert_eq!((&l.to_dense() * &u.to_dense())[(0, 0)], 2.0);
+	/// # Ok::<(), Box<dyn std::error::Error>>(())
+	/// ```
+	pub fn factors(
+		self,
+	) -> Result<
+		(SparseColMat<I, T>, SparseColMat<I, T>),
+		crate::sparse::CreationError,
+	>
+	where
+		T: ComplexField,
+	{
+		match &self.numeric.raw {
+			NumericLuRaw::Supernodal(f) => f.factors(),
+			NumericLuRaw::Simplicial(f) => {
+				fn owned<I: Index, T: ComplexField>(
+					a: SparseColMatRef<'_, I, T>,
+				) -> Result<SparseColMat<I, T>, crate::sparse::CreationError>
+				{
+					let mut entries = alloc::vec::Vec::new();
+					entries
+						.try_reserve(a.compute_nnz())
+						.map_err(FaerError::from)?;
+					entries.extend(a.triplet_iter().map(|e| Triplet {
+						row: I::truncate(e.row),
+						col: I::truncate(e.col),
+						val: copy(e.val),
+					}));
+					SparseColMat::try_new_from_triplets(
+						a.nrows(),
+						a.ncols(),
+						&entries,
+					)
+				}
+				Ok((
+					owned(f.l_factor_unsorted())?,
+					owned(f.u_factor_unsorted())?,
+				))
+			},
+			NumericLuRaw::None => unreachable!(),
+		}
 	}
 
 	/// returns the symbolic structure of the $LU$ factorization

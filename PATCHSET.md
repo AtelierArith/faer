@@ -375,3 +375,8 @@ separate decision recorded in #200.
 Fix: execute the recursive dense panel triangular solve with every feature set.
 Regression: deterministic saved sparse LU residual across all algorithm choices.
 Status: candidate, no performance path change for Rayon builds.
+
+## Saved sparse LU components (#235)
+
+Candidate: owned CSC L/U export and borrowed high-level LU view.
+See [design and verification](docs/worklogs/2026-11-04-sparse-lu-components.md).

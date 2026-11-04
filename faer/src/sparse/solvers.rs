@@ -122,6 +122,23 @@ impl<I: Index, T: ComplexField> Llt<I, T> {
 	}
 }
 impl<I: Index, T: ComplexField> Lu<I, T> {
+	/// Borrows the saved numeric factors and their symbolic owner.
+
+	/// # Examples
+	/// ```
+	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
+	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
+	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
+	/// let owner = a.sp_lu(Par::Seq)?;
+	/// let view = owner.as_ref();
+	/// let (l, u) = view.factors()?;
+	/// assert_eq!((&l.to_dense() * &u.to_dense())[(0, 0)], 2.0);
+	/// # Ok::<(), Box<dyn std::error::Error>>(())
+	/// ```
+	pub fn as_ref(&self) -> linalg_sp::lu::LuRef<'_, I, T> {
+		linalg_sp::lu::LuRef::new_unchecked(&self.symbolic.inner, &self.numeric)
+	}
+
 	/// returns the $LU$ factorization of the input matrix with the same
 	/// sparsity pattern as the original one used to construct the symbolic
 	/// factorization
