@@ -16,6 +16,10 @@ thresholds, and dimensions 0,1,3,12,40. Complex fixtures include nonzero imagina
 coefficients. Both new public examples execute. An unrelated existing Cholesky
 doctest requires additional features; the minimal-feature broad doctest run is
 not globally green. The new API depends on the separate no-Rayon fix in #237.
+`SymbolicLu::try_new_with_params` also permits explicit algorithm tuning. This
+is needed because Colmat's high-level LU previously could only construct default
+auto analyses, even when the caller requested supernodal. Its public example
+executes a forced supernodal analysis and reconstructs the input.
 No numerical factorization or solve kernel is changed by this API extension.
 Downstream Colmat adoption, broader shapes and lifecycle validation remain with
 AtelierArith/Colmat.jl#22.
