@@ -76,10 +76,35 @@ impl<I: Index> SymbolicLu<I> {
 	pub fn try_new(
 		mat: SymbolicSparseColMatRef<'_, I>,
 	) -> Result<Self, FaerError> {
+		Self::try_new_with_params(mat, Default::default())
+	}
+	/// Computes symbolic LU with explicit ordering and algorithm tuning.
+	///
+	/// # Errors
+	/// Returns an allocation or index overflow error when symbolic analysis fails.
+	///
+	/// # Examples
+	/// ```
+	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
+	/// use faer::sparse::linalg::{solvers::{SymbolicLu, Lu}, lu::LuSymbolicParams, SupernodalThreshold};
+	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
+	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
+	/// let symbolic = SymbolicLu::try_new_with_params(a.symbolic(), LuSymbolicParams {
+	///     supernodal_flop_ratio_threshold: SupernodalThreshold::FORCE_SUPERNODAL,
+	///     ..Default::default()
+	/// })?;
+	/// let f = Lu::try_new_with_symbolic(symbolic, a.as_ref(), Par::Seq)?;
+	/// let (l, u) = f.as_ref().factors()?;
+	/// assert_eq!((&l.to_dense() * &u.to_dense())[(0, 0)], 2.0);
+	/// # Ok::<(), Box<dyn std::error::Error>>(())
+	/// ```
+	pub fn try_new_with_params(
+		mat: SymbolicSparseColMatRef<'_, I>,
+		params: linalg_sp::lu::LuSymbolicParams<'_>,
+	) -> Result<Self, FaerError> {
 		Ok(Self {
 			inner: alloc::sync::Arc::new(linalg_sp::lu::factorize_symbolic_lu(
-				mat,
-				Default::default(),
+				mat, params,
 			)?),
 		})
 	}
