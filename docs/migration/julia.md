@@ -8,6 +8,7 @@ This page maps dense `LinearAlgebra.jl` workflows to this fork's Rust API.
 | `cholesky(Hermitian(A, :L))` | `a.llt(Side::Lower, par)`, returning `Result`; `L()` gives the lower factor. |
 | `qr(A)` | `a.qr(par)` is unpivoted; `compute_Q(par)` materializes Q and `R()` borrows R. |
 | `svd(A)` | `a.thin_svd(par)` gives thin factors; `svd(par)` gives full factors. Both return `Result`. |
+| `ordschur(F, select)` for generalized Schur | Move selected saved blocks with `linalg::gevd::reorder_schur_real` / `reorder_schur_cplx`; query `reorder_schur_scratch`, and accumulate Q/Z. Real conjugate pairs move together; a rejected move reports the last valid row. `schur_eigenvalues_real` refreshes homogeneous values from the saved factors. |
 | `dot(x, y)` | `linalg::matmul::dot::inner_prod(x.transpose(), Conj::Yes, y, Conj::No)` for column views. The first operand is conjugated. |
 | `size(A)`, `A[i, j]` | `a.nrows()`, `a.ncols()`, `a[(i, j)]`; indices start at zero. |
 | `view(A, rows, cols)` | Borrow with `as_ref().submatrix(...)` or `as_mut().submatrix_mut(...)`. |

@@ -40,6 +40,7 @@ and safe-minimum handling. Complex-modulus adaptations are identified explicitly
 | hessenberg | adapted; passing | CHKHS 1–2, HST01, ORT01/UNT01 | 20 | evd::lapack | Packed reflectors extracted to logical H |
 | schur | adapted; passing | CHKHS 3–8; HST01 | 20 | evd::lapack | Equivalent Schur forms; compare invariant/residual/spectra |
 | nonsymmetric_evd | adapted; residual failures recorded | CHKHS right/left residuals; GET22 | 20 | evd::lapack | Full EVD exposes both sides; Schur-vector helper exposes right only |
+| qz_reorder | bounded adaptation; passing | DGET54; original analytic fixtures | 20 | gevd::reorder::lapack | Real 1×1/2×2 and complex 1×1 moves, independent S/T scales, subnormal diagonal pencils, 2-/4-thread tokens. Full generalized eigenproblem test program omitted. |
 | schur_reorder | implemented; passing | S/DGET34 (all records), S/D/C/ZGET36; *ec.in selected records | 20 | evd::lapack | Real 1×1/2×2; complex 1×1; rejection contract exercised by `dget34`'s rejected records |
 | balance | implemented; passing | CHKBL/CHKBK; *bal.in/*bak.in | source checker | evd::lapack | Combined balance; right-vector back-transform; metadata adaptation |
 | tridiagonal_evd | implemented; passing | CHKST 9–12/22–26 where applicable | 60 | evd::lapack | QR/DC properties; no MRRR/range selection/Sturm certification |

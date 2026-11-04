@@ -796,7 +796,7 @@ fn multishift_sweep<T: ComplexField>(
 		M.copy_from(&work);
 	}
 }
-fn swap_qz<T: ComplexField>(
+pub(super) fn swap_qz<T: ComplexField>(
 	mut A: MatMut<'_, T>,
 	mut B: MatMut<'_, T>,
 	mut Q: Option<MatMut<'_, T>>,

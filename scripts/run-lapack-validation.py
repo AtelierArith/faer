@@ -11,14 +11,14 @@ import time
 KNOWN_FILE = 'lapack-known-failures.json'
 FAMILIES = (
     'common', 'svd', 'hessenberg', 'schur', 'nonsymmetric_evd',
-    'schur_reorder', 'balance', 'tridiagonal_evd', 'self_adjoint_evd',
+    'schur_reorder', 'qz_reorder', 'balance', 'tridiagonal_evd', 'self_adjoint_evd',
     'lu', 'cholesky', 'indefinite', 'qr', 'lq', 'triangular', 'lstsq',
     'svd_large',
 )
 # Local measurements are documented in docs/lapack-validation.md. Hosted
 # timings remain unmeasured; these bounds leave several times the local runtime.
 LIMITS = dict(common=30, svd=120, hessenberg=60, schur=90,
-              nonsymmetric_evd=60, schur_reorder=30, balance=30,
+              nonsymmetric_evd=60, schur_reorder=30, qz_reorder=30, balance=30,
               tridiagonal_evd=90, self_adjoint_evd=120, lu=180,
               cholesky=60, indefinite=120, qr=90, lq=600, triangular=60,
               lstsq=60, svd_large=300)
