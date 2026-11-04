@@ -380,3 +380,9 @@ Status: candidate, no performance path change for Rayon builds.
 
 Candidate: owned CSC L/U export and borrowed high-level LU view.
 See [design and verification](docs/worklogs/2026-11-04-sparse-lu-components.md).
+
+## Explicit sparse column ordering (#239)
+
+Candidate: optional supplied column permutations for symbolic LU/QR and a
+high-level LU constructor. Existing defaults retain COLAMD.
+See [design and validation](docs/worklogs/2026-11-04-sparse-column-ordering.md).

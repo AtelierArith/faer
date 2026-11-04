@@ -2352,9 +2352,39 @@ pub fn factorize_symbolic_lu<I: Index>(
 	A: SymbolicSparseColMatRef<'_, I>,
 	params: LuSymbolicParams<'_>,
 ) -> Result<SymbolicLu<I>, FaerError> {
+	factorize_symbolic_lu_with_column_ordering(A, params, None)
+}
+/// Computes symbolic LU with an optional explicit forward column permutation.
+/// `None` selects COLAMD. The supplied permutation is copied into the symbolic owner.
+///
+/// # Errors
+/// Returns allocation or index overflow errors from symbolic analysis.
+///
+/// # Panics
+/// Panics when the permutation length differs from the number of columns, or
+/// the matrix shape is unsupported by this factorization.
+/// # Examples
+/// ```
+/// use faer::{perm::Perm, sparse::{SparseColMat, Triplet}};
+/// use faer::sparse::linalg::lu::{factorize_symbolic_lu_with_column_ordering, LuSymbolicParams};
+/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(2, 2, &[
+///     Triplet { row: 0, col: 0, val: 2.0 }, Triplet { row: 1, col: 1, val: 3.0 }])?;
+/// let p = Perm::new_checked(vec![1,0].into_boxed_slice(), vec![1,0].into_boxed_slice(), 2);
+/// let s = factorize_symbolic_lu_with_column_ordering(a.symbolic(), LuSymbolicParams::default(), Some(p.as_ref()))?;
+/// assert_eq!(s.col_perm().arrays().0, &[1,0]);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn factorize_symbolic_lu_with_column_ordering<I: Index>(
+	A: SymbolicSparseColMatRef<'_, I>,
+	params: LuSymbolicParams<'_>,
+	column_ordering: Option<PermRef<'_, I>>,
+) -> Result<SymbolicLu<I>, FaerError> {
 	assert!(A.nrows() == A.ncols());
 	let m = A.nrows();
 	let n = A.ncols();
+	if let Some(p) = column_ordering {
+		assert!(p.len() == n);
+	}
 	let A_nnz = A.compute_nnz();
 	with_dim!(M, m);
 	with_dim!(N, n);
@@ -2393,13 +2423,20 @@ pub fn factorize_symbolic_lu<I: Index>(
 	let mut col_perm_fwd = try_zeroed::<I>(n)?;
 	let mut col_perm_inv = try_zeroed::<I>(n)?;
 	let mut min_row = try_zeroed::<I>(m)?;
-	linalg_sp::colamd::order(
-		&mut col_perm_fwd,
-		&mut col_perm_inv,
-		A.as_dyn(),
-		params.colamd_params,
-		stack,
-	)?;
+	if let Some(p) = column_ordering {
+		let (fwd, inv) = p.arrays();
+		col_perm_fwd.copy_from_slice(fwd);
+		col_perm_inv.copy_from_slice(inv);
+	} else {
+		linalg_sp::colamd::order(
+			&mut col_perm_fwd,
+			&mut col_perm_inv,
+			A.as_dyn(),
+			params.colamd_params,
+			stack,
+		)?;
+	}
+
 	let col_perm =
 		PermRef::new_checked(&col_perm_fwd, &col_perm_inv, n).as_shape(N);
 	let (new_col_ptr, stack) = unsafe { stack.make_raw::<I>(m + 1) };
@@ -2871,8 +2908,10 @@ mod tests {
 					x.as_mut(),
 					Par::Seq,
 					MemStack::new(&mut MemBuffer::new(
-						symbolic
-							.solve_in_place_scratch::<T>(rhs.ncols(), ParShape::Seq),
+						symbolic.solve_in_place_scratch::<T>(
+							rhs.ncols(),
+							ParShape::Seq,
+						),
 					)),
 				);
 				let linsolve_diff = A * &x - &rhs;
@@ -2885,8 +2924,10 @@ mod tests {
 					x.as_mut(),
 					Par::Seq,
 					MemStack::new(&mut MemBuffer::new(
-						symbolic
-							.solve_in_place_scratch::<T>(rhs.ncols(), ParShape::Seq),
+						symbolic.solve_in_place_scratch::<T>(
+							rhs.ncols(),
+							ParShape::Seq,
+						),
 					)),
 				);
 				let linsolve_diff = A.conjugate() * &x - &rhs;
