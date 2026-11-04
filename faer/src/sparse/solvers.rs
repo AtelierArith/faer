@@ -108,6 +108,41 @@ impl<I: Index> SymbolicLu<I> {
 			)?),
 		})
 	}
+	/// Computes symbolic LU using a supplied column ordering instead of COLAMD.
+	///
+	/// # Errors
+	/// Returns allocation or index overflow errors from symbolic analysis.
+	///
+	/// # Panics
+	/// Panics if the matrix is not square or the permutation has the wrong length.
+	///
+	/// # Examples
+	/// ```
+	/// use faer::{Par, perm::Perm, sparse::{SparseColMat, Triplet}};
+	/// use faer::sparse::linalg::solvers::{SymbolicLu, Lu};
+	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(2,2,&[
+	///     Triplet {row:0,col:0,val:2.0}, Triplet {row:1,col:1,val:3.0}])?;
+	/// let p = Perm::new_checked(vec![1,0].into_boxed_slice(),vec![1,0].into_boxed_slice(),2);
+	/// let symbolic = SymbolicLu::try_new_with_column_ordering(a.symbolic(), Default::default(), p.as_ref())?;
+	/// let f = Lu::try_new_with_symbolic(symbolic,a.as_ref(),Par::Seq)?;
+	/// assert_eq!(f.as_ref().col_perm().arrays().0,&[1,0]);
+	/// # Ok::<(), Box<dyn std::error::Error>>(())
+	/// ```
+	pub fn try_new_with_column_ordering(
+		mat: SymbolicSparseColMatRef<'_, I>,
+		params: linalg_sp::lu::LuSymbolicParams<'_>,
+		ordering: crate::perm::PermRef<'_, I>,
+	) -> Result<Self, FaerError> {
+		Ok(Self {
+			inner: alloc::sync::Arc::new(
+				linalg_sp::lu::factorize_symbolic_lu_with_column_ordering(
+					mat,
+					params,
+					Some(ordering),
+				)?,
+			),
+		})
+	}
 }
 impl<I: Index, T: ComplexField> Llt<I, T> {
 	/// returns the $LL^\top$ factorization of the input matrix with the same
