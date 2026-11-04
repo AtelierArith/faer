@@ -37,6 +37,8 @@ pub struct LsmrInfo<T> {
 	pub rel_residual: T,
 	/// number of iterations executed by the algorithm
 	pub iter_count: usize,
+	/// whether the callback requested an early stop (not a convergence claim)
+	pub stopped: bool,
 	#[doc(hidden)]
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
@@ -138,14 +140,23 @@ pub fn lsmr_scratch<T: ComplexField>(
 ///
 /// # note
 /// this function is also optimized for a rhs with multiple columns
+///
+/// The callback runs after an update and may return `()` to continue or
+/// `core::ops::ControlFlow<()>` to request a stop. A stopped iterate remains in
+/// `out`; the returned info has `stopped = true` and does not imply convergence.
+/// Initial convergence needs no update and does not call the callback.
+///
+/// # Errors
+/// Returns the solver's existing numerical breakdown or nonconvergence error
+/// when iteration fails before a callback stop or convergence.
 #[track_caller]
-pub fn lsmr<T: ComplexField>(
+pub fn lsmr<T: ComplexField, C: IterationControl>(
 	out: MatMut<'_, T>,
 	right_precond: impl BiPrecond<T>,
 	mat: impl BiLinOp<T>,
 	rhs: MatRef<'_, T>,
 	params: LsmrParams<T::Real>,
-	callback: impl FnMut(MatRef<'_, T>),
+	mut callback: impl FnMut(MatRef<'_, T>) -> C,
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<LsmrInfo<T::Real>, LsmrError<T::Real>> {
@@ -156,7 +167,7 @@ pub fn lsmr<T: ComplexField>(
 		A: &impl BiLinOp<T>,
 		b: MatRef<'_, T>,
 		params: LsmrParams<T::Real>,
-		callback: &mut dyn FnMut(MatRef<'_, T>),
+		callback: &mut dyn FnMut(MatRef<'_, T>) -> bool,
 		mut par: Par,
 		stack: &mut MemStack,
 	) -> Result<LsmrInfo<T::Real>, LsmrError<T::Real>> {
@@ -225,6 +236,7 @@ pub fn lsmr<T: ComplexField>(
 				abs_residual: zero::<T::Real>(),
 				rel_residual: zero::<T::Real>(),
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -379,6 +391,7 @@ pub fn lsmr<T: ComplexField>(
 				abs_residual: zero::<T::Real>(),
 				rel_residual: zero::<T::Real>(),
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -387,6 +400,7 @@ pub fn lsmr<T: ComplexField>(
 				abs_residual: zero::<T::Real>(),
 				rel_residual: zero::<T::Real>(),
 				iter_count: 0,
+				stopped: false,
 				non_exhaustive: NonExhaustive(()),
 			});
 		}
@@ -612,12 +626,21 @@ pub fn lsmr<T: ComplexField>(
 				start = end;
 			}
 			norm = zetabar.norm_l2();
-			callback(x.rb());
+			if callback(x.rb()) {
+				return Ok(LsmrInfo {
+					rel_residual: &norm / &norm_ref,
+					abs_residual: norm,
+					iter_count: iter + 1,
+					stopped: true,
+					non_exhaustive: NonExhaustive(()),
+				});
+			}
 			if norm <= threshold {
 				return Ok(LsmrInfo {
 					rel_residual: &norm / &norm_ref,
 					abs_residual: norm,
 					iter_count: iter + 1,
+					stopped: false,
 					non_exhaustive: NonExhaustive(()),
 				});
 			}
@@ -633,7 +656,7 @@ pub fn lsmr<T: ComplexField>(
 		&mat,
 		rhs,
 		params,
-		&mut { callback },
+		&mut |x| callback(x).should_stop(),
 		par,
 		stack,
 	)
