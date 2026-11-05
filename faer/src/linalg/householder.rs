@@ -217,8 +217,8 @@ pub fn upgrade_householder_factor_scratch<T: ComplexField>(
 	let par = upgrade_shape_width(par, width);
 	let count = n.msrv_div_ceil(block_size);
 	if count > 1 {
-		// Match the existing recursive split, including truncated final blocks.
-		let mid = count / 2;
+		// Split at a column boundary between complete blocks, retaining a truncated tail.
+		let mid = (count / 2) * block_size;
 		let half = width / 2;
 		upgrade_householder_factor_scratch::<T>(
 			m,
@@ -366,15 +366,24 @@ pub fn upgrade_householder_factor<T: ComplexField>(
 			block_size > prev_block_size,
 			block_size % prev_block_size == 0,
 		));
-		let mid = block_count / 2;
+		let mid = (block_count / 2) * block_size;
 		let (tau_tl, _, _, tau_br) = householder_factor.split_at_mut(mid, mid);
 		let (basis_left, basis_right) = essentials.split_at_col(mid);
 		let basis_right = basis_right.split_at_row(mid).1;
-        let shape=par.shape();
-        let degree=par.degree();
-        let left_shape=upgrade_shape_width(shape,degree-degree/2);
-        let left_req=upgrade_householder_factor_scratch::<T>(basis_left.nrows(),basis_left.ncols(),block_size,prev_block_size,left_shape);
-        let (left_mem,right_stack)=stack.make_aligned_uninit::<u8>(left_req.size_bytes(),left_req.align_bytes());
+		let shape = par.shape();
+		let degree = par.degree();
+		let left_shape = upgrade_shape_width(shape, degree - degree / 2);
+		let left_req = upgrade_householder_factor_scratch::<T>(
+			basis_left.nrows(),
+			basis_left.ncols(),
+			block_size,
+			prev_block_size,
+			left_shape,
+		);
+		let (left_mem, right_stack) = stack.make_aligned_uninit::<u8>(
+			left_req.size_bytes(),
+			left_req.align_bytes(),
+		);
 		join_raw(
 			|parallelism| {
 				upgrade_householder_factor(

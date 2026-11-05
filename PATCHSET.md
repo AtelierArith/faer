@@ -5,6 +5,13 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT: correct the Householder factor-upgrade column split for multiple
+  target blocks (#265), retaining truncated final blocks and using the same
+  partition in the scratch query. The pinned parent's 9-column/block-2 MWE
+  fails three independent Gram checks; four-scalar Seq/Team regressions pass
+  on the candidate. The complete ordinary crate suite passes (916 tests);
+  performance acceptance and hosted checks remain pending.
+
 - EXPERIMENT: canonical Householder factor-upgrade scratch query and MemStack,
   threaded through QR/EVD/SVD reductions and their queries (faer #93/#168,
   AtelierArith/Colmat.jl#22). Tridiagonal/bidiagonal scratch queries now take

@@ -143,3 +143,141 @@ fn caller_scratch_matches_four_scalar_layouts() {
 		check::<c64>(par);
 	});
 }
+
+fn multiple_blocks<T: Value>(mut par: Par<'_>) {
+	for (m, n, b, prev) in [
+		(9, 9, 2, 1),
+		(17, 17, 4, 1),
+		(96, 65, 16, 8),
+		(2048, 33, 16, 1),
+		(2048, 65, 16, 1),
+		(2048, 65, 16, 8),
+	] {
+		let basis = Mat::<T>::from_fn(m, n, |i, j| {
+			if i < j {
+				zero()
+			} else if i == j {
+				one()
+			} else {
+				T::value(0.02 * sample(i, j), 0.01 * sample(j, i))
+			}
+		});
+		let mut factor = Mat::<T>::full(n, n, T::value(19.0, 0.0));
+		for j in 0..n {
+			for i in 0..=j {
+				factor[(i, j)] = if i == j {
+					gram(basis.as_ref(), i, j) * from_f64::<T>(0.5)
+				} else if i / prev == j / prev {
+					gram(basis.as_ref(), i, j)
+				} else {
+					T::value(23.0, 0.0)
+				};
+			}
+		}
+		let req =
+			upgrade_householder_factor_scratch::<T>(m, n, b, prev, par.shape());
+		let mut memory = MemBuffer::new(req);
+		upgrade_householder_factor(
+			factor.as_mut(),
+			basis.as_ref(),
+			b,
+			prev,
+			par.reborrow(),
+			MemStack::new(&mut memory),
+		);
+		let bound =
+			eps::<T::Real>() * from_f64::<T::Real>(32.0 * m.max(1) as f64);
+		for j in 0..n {
+			for i in 0..n {
+				if i > j {
+					assert_eq!(factor[(i, j)], T::value(19.0, 0.0));
+					continue;
+				}
+				if i / b != j / b {
+					assert_eq!(factor[(i, j)], T::value(23.0, 0.0));
+					continue;
+				}
+				let expected = gram(basis.as_ref(), i, j)
+					* if i == j { from_f64::<T>(0.5) } else { one() };
+				assert!(
+					abs(&(factor[(i, j)].clone() - expected)) <= bound,
+					"m={m} n={n} block={b} prev={prev} at ({i},{j})"
+				);
+			}
+		}
+	}
+}
+#[test]
+fn multiple_blocks_keep_column_aligned_boundaries() {
+	multiple_blocks::<f32>(Par::Seq);
+	multiple_blocks::<f64>(Par::Seq);
+	multiple_blocks::<c32>(Par::Seq);
+	multiple_blocks::<c64>(Par::Seq);
+	#[cfg(feature = "threadteam")]
+	for width in [2, 8] {
+		faer::team::with_team(width, |mut par| {
+			multiple_blocks::<f32>(par.reborrow());
+			multiple_blocks::<f64>(par.reborrow());
+			multiple_blocks::<c32>(par.reborrow());
+			multiple_blocks::<c64>(par);
+		});
+	}
+}
+
+#[cfg(feature = "threadteam")]
+#[test]
+fn short_workspace_panics_before_factor_update() {
+	faer::team::with_team(2, |mut par| {
+		let (m, n) = (8192, 32);
+		let basis = Mat::<f64>::from_fn(m, n, |i, j| {
+			if i < j {
+				0.0
+			} else if i == j {
+				1.0
+			} else {
+				0.01
+			}
+		});
+		let mut factor = Mat::<f64>::full(n, n, 19.0);
+		for j in 0..n {
+			factor[(j, j)] = (1.0 + 0.0001 * (m - j - 1) as f64) / 2.0;
+		}
+		let before = factor.clone();
+		let req =
+			upgrade_householder_factor_scratch::<f64>(m, n, n, 1, par.shape());
+		assert!(
+			req.size_bytes() > 0,
+			"test must exercise the actual deep parallel branch"
+		);
+		let short = faer::dyn_stack::StackReq::new_aligned::<u8>(
+			req.size_bytes() - 1,
+			req.align_bytes(),
+		);
+		let mut memory = MemBuffer::new(short);
+		let result =
+			std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+				upgrade_householder_factor(
+					factor.as_mut(),
+					basis.as_ref(),
+					n,
+					1,
+					par.reborrow(),
+					MemStack::new(&mut memory),
+				)
+			}));
+		assert!(result.is_err());
+		assert_eq!(factor, before);
+		let mut memory = MemBuffer::new(req);
+		upgrade_householder_factor(
+			factor.as_mut(),
+			basis.as_ref(),
+			n,
+			1,
+			par,
+			MemStack::new(&mut memory),
+		);
+		assert!(
+			(factor[(0, 1)] - (0.01 + 0.0001 * (m - 2) as f64)).abs() < 1e-10
+		);
+	});
+}

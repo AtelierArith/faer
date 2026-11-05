@@ -44,5 +44,40 @@ main 9-column/block-2/previous-1 standalone MWE exits 101 with three wrong
 coefficients. It is reported separately as tensor4all/faer#265 and will be fixed
 in its own commit, with the matching scratch partition corrected too.
 
-Campaign acceptance, final no_std/doctests, final regression and hosted checks
-remain unverified. The change is an experiment, not adopted.
+Campaign acceptance and hosted checks remain unverified. The change is an
+experiment, not adopted. Final functional evidence is recorded below.
+
+## Multiple-block correctness (#265)
+
+The recursion split is a column offset, so `(block_count/2)*block_size` replaces
+`block_count/2` in execution and query. A new four-scalar public test fails on
+43089e0 at the first missing within-block coefficient (4,5), then passes after
+the two offsets change. Cases include odd block counts, partial final blocks,
+previous widths 1/8, and 2/8-participant trees with simultaneous deep children.
+Cross-block sentinel entries and original diagonal denominators are checked.
+This numerical correction is a separate commit from the storage/API change.
+
+## Final functional evidence and remaining acceptance
+
+The post-#265 source passes the complete crate test run: 916 passed, 162
+pre-existing ignored, including 84 doctests. The public upgrade contract has
+three passing tests: four-scalar C/F layouts, multiple-block boundaries, and
+short workspace rejected before any factor update. The process-wide allocation
+regression passes. An independent release MWE reports zero allocations/bytes
+for f32/f64/c32/c64 at widths 1 and 2 across three repetitions, with two actual
+parallel sections at width 2 and the parent's Gram errors unchanged. Setup
+and scratch acquisition are outside the counted step; this is not a claim
+about arbitrary scalar implementations or allocation of the owning outputs.
+A real nightly no_std executable also exercises the provided-stack upgrade
+and independently checks its coefficient. The opt-in affected decomposition
+families are being validated separately from the ordinary suite.
+
+No timing, speedup, scaling or adoption claim follows from the allocation
+counter. The development host is an AMD Ryzen 9 PRO 8945HS with all 16 logical
+CPUs in one L3 sharing domain, so the observing process cannot be pinned off
+the measured L3 domain as the canonical protocol requires. Neither existing
+harness hardware profile describes this host. The declared campaign, fbench
+verification, paired candidate comparison and hosted CI remain pending; no
+pinning or hardware requirement has been waived. Keep this change as a draft
+until those acceptance requirements are satisfied. Colmat has not adopted the
+unmerged API change.
