@@ -92,3 +92,17 @@ The hosted build explicitly registers the new public regression in sequential
 and threadteam configurations, plus the process-wide allocation test. Those
 new hosted runs remain pending. The final cosmetic source reflow preserves
 the expressions used by the completed local numerical tests.
+
+## Coverage integration
+
+Main's #266 (`2d4ea4e`) removes a duplicate whole QZ call from the #253
+child test while retaining its exact AED-branch workspace check; the public
+QZ scratch regression still executes the decomposition. It is merged into
+this branch without any production-expression change. The retained child
+regression passes at the integrated tree. The completed Householder,
+allocation, no_std and full numerical results above remain applicable to the
+same production implementation. Hosted checks must still pass at the new head.
+The prior coverage run received a signal after 318 passes; four running tests
+were terminated and 510 were not run, so it established no complete success.
+No numerical assertion failure appears in that log and its cancellation cause
+has not been established.
