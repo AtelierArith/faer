@@ -5,6 +5,13 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT: canonical Householder factor-upgrade scratch query and MemStack,
+  threaded through QR/EVD/SVD reductions and their queries (faer #93/#168,
+  AtelierArith/Colmat.jl#22). Tridiagonal/bidiagonal scratch queries now take
+  their actual stored factor widths. Four-scalar warmed upgrade allocations
+  change from one to zero with the provided stack; no campaign adoption or
+  timing/scaling improvement is claimed. [Record](docs/worklogs/2026-11-05-householder-upgrade-scratch.md).
+
 - EXPERIMENT: `SymbolicQr::raw()` exposes a read-only borrowed reference to the
   already public symbolic variant, enabling downstream algorithm inspection
   without private-layout assumptions (AtelierArith/Colmat.jl#2). This adds no
