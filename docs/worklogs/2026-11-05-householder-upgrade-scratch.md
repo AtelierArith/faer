@@ -69,8 +69,12 @@ parallel sections at width 2 and the parent's Gram errors unchanged. Setup
 and scratch acquisition are outside the counted step; this is not a claim
 about arbitrary scalar implementations or allocation of the owning outputs.
 A real nightly no_std executable also exercises the provided-stack upgrade
-and independently checks its coefficient. The opt-in affected decomposition
-families are being validated separately from the ordinary suite.
+and independently checks its coefficient. The additional opt-in numerical
+validation passes 77 tests: QR 8, LQ 8,
+Hessenberg 8, nonsymmetric EVD 8, self-adjoint EVD 12, and SVD 33. The
+SVD filter includes an existing opt-in bidiagonal regression in addition to
+the four-scalar LAPACK-inspired families. These are correctness checks, not
+benchmark campaign verification.
 
 No timing, speedup, scaling or adoption claim follows from the allocation
 counter. The development host is an AMD Ryzen 9 PRO 8945HS with all 16 logical
@@ -81,3 +85,10 @@ verification, paired candidate comparison and hosted CI remain pending; no
 pinning or hardware requirement has been waived. Keep this change as a draft
 until those acceptance requirements are satisfied. Colmat has not adopted the
 unmerged API change.
+
+The reviewable experiment is [PR #267](https://github.com/tensor4all/faer/pull/267),
+kept draft pending acceptance.
+The hosted build explicitly registers the new public regression in sequential
+and threadteam configurations, plus the process-wide allocation test. Those
+new hosted runs remain pending. The final cosmetic source reflow preserves
+the expressions used by the completed local numerical tests.
