@@ -16,7 +16,127 @@ pub(crate) fn swap_elems<T: ComplexField>(
 		core::ptr::swap(a, b);
 	}
 }
-fn lu_in_place_unblocked<I: Index, T: ComplexField>(
+/// The first row of the largest `abs1` among the lanes of `val` (each lane holds the first row at
+/// which it saw its maximum, so the smallest tied row is the first row of the column): the scalar
+/// search's choice, whatever the lane count. 0 when every value is zero (or NaN), as there.
+#[inline(always)]
+fn first_of_max<T: ComplexField, S: pulp::Simd>(
+	simd: &SimdCtx<'_, T, S>,
+	val: faer_traits::RealReg<T::SimdVec<S>>,
+	idx: T::SimdIndex<S>,
+) -> usize {
+	let best = simd.reduce_max_real(val);
+	let is_best = (**simd).ge(val, simd.splat_real(&best));
+	let tied = simd.iselect(is_best, idx, simd.isplat(T::Index::truncate(usize::MAX)));
+	let lanes = bytemuck::cast_slice::<T::SimdIndex<S>, T::Index>(core::slice::from_ref(&tied));
+	lanes.iter().map(|i| i.zx()).min().unwrap_or(0)
+}
+
+/// One column step of the leaf on contiguous columns, in one pass per column: `lhs` (rows below
+/// the pivot of the pivot column) is scaled by `inv` when given, then `rest[.., c] -= lhs *
+/// urow[c]` for every column of `rest`, and the first row of `rest[.., 0]` with the largest `abs1`
+/// is returned (the next pivot, found while that column is written). With `lhs` empty of columns
+/// to update, only the search runs when `search_lhs`: the first column of a leaf.
+fn leaf_step_simd<T: ComplexField>(
+	lhs: ColMut<'_, T, usize, ContiguousFwd>,
+	rest: MatMut<'_, T, usize, usize, ContiguousFwd>,
+	urow: RowRef<'_, T, usize>,
+	inv: Option<T>,
+	search_lhs: bool,
+) -> usize {
+	struct Impl<'a, 'M, 'N, T: ComplexField> {
+		lhs: ColMut<'a, T, Dim<'M>, ContiguousFwd>,
+		rest: MatMut<'a, T, Dim<'M>, Dim<'N>, ContiguousFwd>,
+		urow: RowRef<'a, T, Dim<'N>>,
+		inv: Option<T>,
+		search_lhs: bool,
+	}
+	impl<'a, 'M, 'N, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'N, T> {
+		type Output = usize;
+
+		#[inline(always)]
+		fn with_simd<S: pulp::Simd>(self, simd: S) -> usize {
+			let Self { mut lhs, mut rest, urow, inv, search_lhs } = self;
+			let M = lhs.nrows();
+			let N = rest.ncols();
+			let simd = SimdCtx::<'_, T, S>::new(T::simd_ctx(simd), M);
+			let lanes = core::mem::size_of::<T::SimdVec<S>>() / core::mem::size_of::<T>();
+			let inc = simd.isplat(T::Index::truncate(lanes));
+			let iota = T::simd_iota(&simd.0);
+			let indices = simd.indices();
+			let mut best_val = faer_traits::RealReg(simd.zero());
+			let mut best_idx = simd.izero();
+			let track = |x: T::SimdVec<S>,
+			             idx: T::SimdIndex<S>,
+			             best_val: &mut faer_traits::RealReg<T::SimdVec<S>>,
+			             best_idx: &mut T::SimdIndex<S>| {
+				let v = simd.abs1(x);
+				let better = (*simd).gt(v, *best_val);
+				*best_val = faer_traits::RealReg(simd.select(better, v.0, best_val.0));
+				*best_idx = simd.iselect(better, idx, *best_idx);
+			};
+			// `x - l * u` in one fused multiply-add: the rounding of the scalar leaf's rank one
+			// `matmul`, so the factor, and the pivots of near ties, do not depend on the layout
+			// (a strided panel takes the scalar leaf)
+			let update = |l: T::SimdVec<S>, u: T::SimdVec<S>, x: T::SimdVec<S>| simd.mul_add(l, u, x);
+			if let Some(inv) = inv {
+				let inv = simd.splat(&inv);
+				simd_iter!(for i in [indices] {
+					let x = simd.read(lhs.rb(), i);
+					simd.write(lhs.rb_mut(), i, simd.mul(x, inv));
+				});
+			}
+			if search_lhs {
+				let mut idx = iota;
+				simd_iter!(for i in [indices] {
+					track(simd.read(lhs.rb(), i), idx, &mut best_val, &mut best_idx);
+					idx = simd.iadd(idx, inc);
+				});
+				let _ = idx;
+				return first_of_max(&simd, best_val, best_idx);
+			}
+			let lhs = lhs.rb();
+			for j in N.indices() {
+				let u = simd.splat(&-urow[j].copy());
+				let mut dst = rest.rb_mut().col_mut(j);
+				if *j == 0 {
+					let mut idx = iota;
+					simd_iter!(for i in [indices] {
+						let x = update(simd.read(lhs, i), u, simd.read(dst.rb(), i));
+						simd.write(dst.rb_mut(), i, x);
+						track(x, idx, &mut best_val, &mut best_idx);
+						idx = simd.iadd(idx, inc);
+					});
+					let _ = idx;
+				} else {
+					simd_iter!(for i in [indices] {
+						let x = update(simd.read(lhs, i), u, simd.read(dst.rb(), i));
+						simd.write(dst.rb_mut(), i, x);
+					});
+				}
+			}
+			if *N == 0 { 0 } else { first_of_max(&simd, best_val, best_idx) }
+		}
+	}
+	with_dim!(M, lhs.nrows());
+	with_dim!(N, rest.ncols());
+	dispatch!(
+		Impl {
+			lhs: lhs.as_row_shape_mut(M),
+			rest: rest.as_shape_mut(M, N),
+			urow: urow.as_col_shape(N),
+			inv,
+			search_lhs,
+		},
+		Impl,
+		T
+	)
+}
+
+/// The leaf on contiguous columns: the scalar leaf's steps (search, swap of the whole row, scaling,
+/// rank one update of the leaf's columns) with the scaling, the update and the next column's search
+/// in one SIMD pass per column, and no `matmul` call per column.
+fn lu_in_place_unblocked_simd<I: Index, T: ComplexField>(
 	matrix: MatMut<'_, T>,
 	start: usize,
 	end: usize,
@@ -24,9 +144,80 @@ fn lu_in_place_unblocked<I: Index, T: ComplexField>(
 ) -> usize {
 	let mut matrix = matrix;
 	let m = matrix.nrows();
+	let mut n_trans = 0;
+	let mut imax = {
+		let (col, _) = matrix.rb_mut().get_mut(.., start..end).split_at_col_mut(1);
+		let col = col.col_mut(0).try_as_col_major_mut().unwrap();
+		let empty = MatMut::from_column_major_slice_mut(&mut [], m, 0)
+			.try_as_col_major_mut()
+			.unwrap();
+		leaf_step_simd(col, empty, RowRef::from_slice(&[]), None, true)
+	};
+	for j in start..end {
+		let row = j - start;
+		trans[row] = I::truncate(imax - row);
+		if imax != row {
+			swap_rows_idx(matrix.rb_mut(), row, imax);
+			n_trans += 1;
+		}
+		let panel = matrix.rb_mut().get_mut(.., j..end);
+		let (top, bottom) = panel.split_at_row_mut(row + 1);
+		let top = top.rb();
+		let pivot = top[(row, 0)].copy();
+		let (mut lhs, rest) = bottom.split_at_col_mut(1);
+		let mut inv = None;
+		// An exactly zero pivot column is a singular factor, not a division: OpenBLAS's
+		// `getf2_k` leaves the (all zero) column alone instead of scaling it by infinity.
+		if pivot != zero() {
+			if pivot.abs() >= min_positive() {
+				inv = Some(pivot.recip());
+			} else {
+				// see the scalar leaf: a subnormal pivot divides elementwise, rescaled
+				let ref shift = max_positive::<T::Real>();
+				let ref pivot = pivot.mul_real(shift);
+				for i in 0..lhs.nrows() {
+					lhs[(i, 0)] = &lhs[(i, 0)].mul_real(shift) / pivot;
+				}
+			}
+		}
+		let urow = top.row(row).subcols(1, end - j - 1);
+		let next = leaf_step_simd(
+			lhs.col_mut(0).try_as_col_major_mut().unwrap(),
+			rest.try_as_col_major_mut().unwrap(),
+			urow,
+			inv,
+			false,
+		);
+		imax = row + 1 + next;
+	}
+	n_trans
+}
+
+fn lu_in_place_unblocked<I: Index, T: ComplexField>(
+	matrix: MatMut<'_, T>,
+	start: usize,
+	end: usize,
+	trans: &mut [I],
+) -> usize {
 	if start == end {
 		return 0;
 	}
+	// real types only: the lane indices of the complex search were not right (the scalar leaf
+	// stays the complex one)
+	if const { T::SIMD_CAPABILITIES.is_simd() && T::IS_REAL } && matrix.row_stride() == 1 {
+		lu_in_place_unblocked_simd(matrix, start, end, trans)
+	} else {
+		lu_in_place_unblocked_scalar(matrix, start, end, trans)
+	}
+}
+fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
+	matrix: MatMut<'_, T>,
+	start: usize,
+	end: usize,
+	trans: &mut [I],
+) -> usize {
+	let mut matrix = matrix;
+	let m = matrix.nrows();
 	let mut n_trans = 0;
 	for j in start..end {
 		let col = j;
@@ -83,9 +274,10 @@ fn lu_in_place_unblocked<I: Index, T: ComplexField>(
 	}
 	n_trans
 }
-/// Sections of the trailing update of one recursion level: the triangular solve and the
-/// product, each a join; the second runs on caches the first filled or evicted, so the two
-/// are counted as the cold-region rule of the thresholds design (provisional).
+/// Sections of the trailing update of one recursion level: the left half's row swaps with the
+/// triangular solve (one section over column chunks of the right half), then the product; the
+/// second runs on caches the first filled or evicted, so the two are counted as the cold-region
+/// rule of the thresholds design (provisional).
 const TRAILING_UPDATE_SECTIONS: u32 = 2;
 /// Sections of the swap stage of one level when both the columns left of the panel and the
 /// columns right of it are swapped: a split of the two blocks over the parallelism, then a
@@ -100,7 +292,8 @@ use crate::utils::thread::with_width;
 
 pub use crate::utils::cost::ParThreshold;
 
-/// The width the trailing update (`b x cols` solve, `rows x cols x b` product) of a level runs
+/// The width the trailing update (`b` row swaps over `cols` columns, `b x cols` solve,
+/// `rows x cols x b` product) of a level runs
 /// at (1: sequential). [`ParThreshold::Derived`] is the widest width of `par` that pays for the
 /// serial time; [`Fixed`](ParThreshold::Fixed) is an explicit floor in `f64` elements of the
 /// updated block, counted in flops (a complex element carries four times the arithmetic), and
@@ -119,9 +312,11 @@ fn trailing_update_width<T: ComplexField>(
 			let macs = cols.saturating_mul(
 				b.saturating_mul(b) / 2 + rows.saturating_mul(b),
 			);
+			// the region also applies the left half's `b` row swaps to its `cols` columns
 			return par_width_time_upto(
 				par,
-				serial_time(macs, gemm_ns_per_mac::<T>()),
+				serial_time(macs, gemm_ns_per_mac::<T>())
+					+ serial_time(b.saturating_mul(cols), rate::lu_swap().of::<T>()),
 				TRAILING_UPDATE_SECTIONS,
 				max_region_width(par.degree()),
 			);
@@ -157,6 +352,17 @@ fn swap_stage_width<T: ComplexField>(
 		),
 	}
 }
+/// Applies the transpositions `trans` (row `j` with row `j + trans[j]`, in order) to every
+/// column of `mat`.
+fn apply_transpositions<I: Index, T: ComplexField>(mat: MatMut<'_, T>, trans: &[I]) {
+	let mut mat = mat;
+	for j in 0..mat.ncols() {
+		let mut col = mat.rb_mut().col_mut(j);
+		for (j, &t) in trans.iter().enumerate() {
+			swap_elems(col.rb_mut(), j, t.zx() + j);
+		}
+	}
+}
 pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 	A: MatMut<'_, T>,
 	start: usize,
@@ -178,8 +384,11 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 	let block_size = half.next_multiple_of(pow);
 	let mut n_trans = 0;
 	assert!(n <= m);
+	// The left half sees only its own columns: its transpositions reach the right half in the
+	// trailing update below, inside the same section as the solve, so each worker swaps the rows
+	// of the columns it then solves instead of the caller swapping them alone beforehand.
 	n_trans += lu_in_place_recursion(
-		A.rb_mut().get_mut(.., start..end),
+		A.rb_mut().get_mut(.., start..start + block_size),
 		0,
 		block_size,
 		&mut trans[..block_size],
@@ -188,10 +397,9 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 	);
 	{
 		let mut A = A.rb_mut().get_mut(.., start..end);
-		let (A00, mut A01, A10, mut A11) =
-			A.rb_mut().split_at_mut(block_size, block_size);
-		let A00 = A00.rb();
-		let A10 = A10.rb();
+		let (A_l, A_r) = A.rb_mut().split_at_col_mut(block_size);
+		let (A00, A10) = A_l.rb().split_at_row(block_size);
+		let left_trans = &trans[..block_size];
 		// The panel solve and the trailing product below are this level's whole
 		// parallel work, and the block size halves every level of the recursion, so
 		// past a few levels they are a fork and a join around a handful of thousands
@@ -201,16 +409,36 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 		// (one join for the solve, one for the product), the second of them on
 		// cold caches. Below it take `Par::Seq`; the recursion keeps the caller's
 		// `par`, so every level decides for its own trailing update.
-		let (rows1, cols1, b) = (A11.nrows(), A11.ncols(), A10.ncols());
+		let (rows1, cols1, b) = (A10.nrows(), A_r.ncols(), A10.ncols());
 		let width = trailing_update_width::<T>(&par, params.par_threshold, rows1, cols1, b);
 		with_width(par.reborrow(), width, |mut par_here| {
-			{
+			// the swap and the solve of one column chunk of the right half are the chunk's
+			// worker's alone: one section, sequential work on every member
+			let swap_and_solve = |mut chunk: MatMut<'_, T>| {
+				apply_transpositions(chunk.rb_mut(), left_trans);
 				linalg::triangular_solve::solve_unit_lower_triangular_in_place(
-					A00.rb(),
-					A01.rb_mut(),
-					par_here.reborrow(),
+					A00,
+					chunk.get_mut(..block_size, ..),
+					Par::Seq,
 				);
+			};
+			let mut A_r = A_r;
+			match par_here {
+				Par::Seq => swap_and_solve(A_r.rb_mut()),
+				#[cfg(feature = "rayon")]
+				_ => {
+					let k = par_here.degree();
+					crate::utils::thread::for_each(
+						par_here.reborrow(),
+						k,
+						A_r.rb_mut().par_col_partition_mut(k),
+						|chunk| swap_and_solve(chunk),
+					);
+				},
 			}
+			let (A01, A11) = A_r.split_at_row_mut(block_size);
+			let A01 = A01.rb();
+			let mut A11 = A11;
 			linalg::matmul::matmul(
 				A11.rb_mut(),
 				Accum::Add,
@@ -229,15 +457,7 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 			params.into(),
 		);
 	}
-	let swap = |mat: MatMut<'_, T>| {
-		let mut mat = mat;
-		for j in 0..mat.ncols() {
-			let mut col = mat.rb_mut().col_mut(j);
-			for (j, &t) in trans[..n].iter().enumerate() {
-				swap_elems(col.rb_mut(), j, t.zx() + j);
-			}
-		}
-	};
+	let swap = |mat: MatMut<'_, T>| apply_transpositions(mat, &trans[..n]);
 	let (A_left, A_right) = A.rb_mut().split_at_col_mut(start);
 	let A_right = A_right.get_mut(.., end - start..ncols - start);
 	let width = swap_stage_width::<T>(
@@ -336,11 +556,36 @@ pub struct PartialPivLuInfo {
 pub enum LdltError {
 	ZeroPivot { index: usize },
 }
+/// Width of the unblocked leaf panel for `f64`. Below it the factorization runs a column at a time,
+/// sequentially, so on a team the leaves are the serial part of the call: at n = 512 on 8 threads
+/// they were half of it once the `U` solve stopped aliasing (`docs/worklogs/2026-11-05-lu-leaf-width.md`).
+/// Median of 31 calls, ms, the widths interleaved; evo2 (Zen 5), `f64`, a team of `T`:
+///
+/// | n, T    | 4     | 8     | 16    | 32    |
+/// |---------|-------|-------|-------|-------|
+/// | 256, 1  | 0.308 | 0.304 | 0.327 | 0.453 |
+/// | 256, 8  | 0.249 | 0.245 | 0.265 | 0.381 |
+/// | 512, 1  | 1.777 | 1.791 | 1.970 | 2.362 |
+/// | 512, 8  | 0.915 | 0.930 | 1.104 | 1.490 |
+/// | 1024, 1 | 11.01 | 11.07 | 11.53 | 12.56 |
+/// | 1024, 8 | 3.425 | 3.486 | 3.931 | 4.985 |
+/// | 2048, 1 | 81.66 | 82.05 | 83.23 | 86.26 |
+/// | 2048, 8 | 16.96 | 17.19 | 18.57 | 21.79 |
+/// | 4096, 1 | 614.7 | 615.3 | 619.9 | 630.2 |
+/// | 4096, 8 | 101.7 | 102.6 | 107.6 | 119.5 |
+///
+/// 8 wins or ties everywhere (4 is within 2 %, ahead at large n and behind at 256). The other scalar
+/// types keep 16: they were not scanned.
+const F64_RECURSION_THRESHOLD: usize = 8;
 impl<T: ComplexField> Auto<T> for PartialPivLuParams {
 	#[inline]
 	fn auto() -> Self {
 		Self {
-			recursion_threshold: 16,
+			recursion_threshold: if const { T::IS_NATIVE_F64 } {
+				F64_RECURSION_THRESHOLD
+			} else {
+				16
+			},
 			block_size: 64,
 			par_threshold: ParThreshold::Derived,
 			non_exhaustive: NonExhaustive(()),
@@ -860,5 +1105,111 @@ mod tests {
 		};
 		run(Par::Seq);
 		crate::team::with_team(8, run);
+	}
+
+	/// The `f64` default leaf is 8 columns (the other types keep 16), and it factors shapes whose
+	/// width leaves a leaf tail, sequentially and on a team: `P A = L U` to rounding.
+	fn simd_leaf_picks_the_scalar_pivots_for<T: ComplexField<Real = T> + Copy + PartialEq>(
+		from: impl Fn(f64) -> T,
+	) {
+		// the same panels through both leaves: the transpositions must be identical, ties
+		// included (a matrix of small integers ties a lot, and the scalar search takes the
+		// first row), and the factor bit for bit (the update is the same fused multiply-add as
+		// the scalar leaf's `matmul`); the panel sits between other columns, which the row
+		// swaps must reach too
+		let rng = &mut StdRng::seed_from_u64(0x5EAF);
+		let shapes = [(1usize, 1usize), (8, 8), (9, 8), (16, 8), (17, 8), (33, 5), (100, 8), (257, 16), (64, 3)];
+		for (m, w) in shapes {
+			for ties in [false, true] {
+				let ncols = w + 6;
+				let R = CwiseMatDistribution {
+					nrows: m,
+					ncols,
+					dist: StandardNormal,
+				}
+				.rand::<Mat<f64>>(rng);
+				let A = Mat::from_fn(m, ncols, |i, j| {
+					// small integers: exact ties first, near ties after a step
+					from(if ties { ((i * 7 + j * 3) % 5) as f64 + (R[(i, j)] * 2.0).round() } else { R[(i, j)] })
+				});
+				let (start, end) = (3, 3 + w);
+				let (mut simd, mut scalar) = (A.clone(), A.clone());
+				let (mut t_simd, mut t_scalar) = (vec![0usize; w], vec![0usize; w]);
+				let n_simd =
+					lu_in_place_unblocked_simd(simd.as_mut(), start, end, &mut t_simd);
+				let n_scalar =
+					lu_in_place_unblocked_scalar(scalar.as_mut(), start, end, &mut t_scalar);
+				assert!(all(t_simd == t_scalar, n_simd == n_scalar));
+				assert!(simd == scalar);
+			}
+		}
+	}
+	#[test]
+	fn simd_leaf_picks_the_scalar_pivots() {
+		simd_leaf_picks_the_scalar_pivots_for::<f64>(|x| x);
+		simd_leaf_picks_the_scalar_pivots_for::<f32>(|x| x as f32);
+	}
+	#[test]
+	fn f64_default_leaf_factors() {
+		let rt_f64 =
+			<PartialPivLuParams as Auto<f64>>::auto().recursion_threshold;
+		let rt_f32 =
+			<PartialPivLuParams as Auto<f32>>::auto().recursion_threshold;
+		let rt_c64 =
+			<PartialPivLuParams as Auto<c64>>::auto().recursion_threshold;
+		assert!(all(
+			rt_f64 == F64_RECURSION_THRESHOLD,
+			rt_f32 == 16,
+			rt_c64 == 16
+		));
+		let rng = &mut StdRng::seed_from_u64(0x1EAF);
+		for n in [7usize, 8, 9, 17, 100, 257] {
+			let A = CwiseMatDistribution {
+				nrows: n,
+				ncols: n,
+				dist: StandardNormal,
+			}
+			.rand::<Mat<f64>>(rng);
+			for team in [1usize, 4] {
+				let mut LU = A.clone();
+				let (mut perm, mut inv) = (vec![0usize; n], vec![0usize; n]);
+				crate::team::with_team(team, |par| {
+					lu_in_place(
+						LU.as_mut(),
+						&mut perm,
+						&mut inv,
+						par,
+						MemStack::new(&mut MemBuffer::new(
+							lu_in_place_scratch::<usize, f64>(
+								n,
+								n,
+								ParShape::Seq,
+								default(),
+							),
+						)),
+						default(),
+					);
+				});
+				let L = Mat::<f64>::from_fn(n, n, |i, j| {
+					if i > j {
+						LU[(i, j)]
+					} else if i == j {
+						1.0
+					} else {
+						0.0
+					}
+				});
+				let U = Mat::<f64>::from_fn(n, n, |i, j| {
+					if i <= j { LU[(i, j)] } else { 0.0 }
+				});
+				let PA = Mat::<f64>::from_fn(n, n, |i, j| A[(perm[i], j)]);
+				let err = (&PA - &L * &U).norm_max();
+				let tol = 64.0 * n as f64 * f64::EPSILON * A.norm_max();
+				assert!(
+					err <= tol,
+					"n={n} team={team}: |PA - LU| = {err:e} > {tol:e}"
+				);
+			}
+		}
 	}
 }
