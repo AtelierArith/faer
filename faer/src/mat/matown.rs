@@ -588,8 +588,8 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// # safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
-	/// - `nrows < self.row_capacity()`
-	/// - `ncols < self.col_capacity()`
+	/// - `nrows <= self.row_capacity()`
+	/// - `ncols <= self.col_capacity()`
 	/// - the elements that were previously out of bounds but are now in bounds
 	///   must be
 	/// initialized
@@ -612,6 +612,49 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	}
 }
 impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
+	/// returns the allocated row capacity, in scalar elements per column.
+	///
+	/// this may exceed the requested minimum because of alignment padding.
+	/// dimensions within both capacities can be reached without reallocating.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use faer::Mat;
+	/// let mut matrix = Mat::<f64>::with_capacity(9, 3);
+	/// let rows = matrix.row_capacity();
+	/// let pointer = matrix.as_ptr();
+	/// assert!(rows >= 9);
+	/// matrix.resize_with(rows, 3, |_, _| 2.0);
+	/// assert_eq!(matrix.as_ptr(), pointer);
+	/// assert_eq!(matrix[(rows - 1, 2)], 2.0);
+	/// ```
+	#[inline]
+	pub fn row_capacity(&self) -> usize {
+		self.0.raw.row_capacity
+	}
+
+	/// returns the allocated column capacity.
+	///
+	/// dimensions within both capacities can be reached without reallocating.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use faer::Mat;
+	/// let mut matrix = Mat::<f64>::with_capacity(3, 9);
+	/// let cols = matrix.col_capacity();
+	/// let pointer = matrix.as_ptr();
+	/// assert!(cols >= 9);
+	/// matrix.resize_with(3, cols, |_, _| 2.0);
+	/// assert_eq!(matrix.as_ptr(), pointer);
+	/// assert_eq!(matrix[(2, cols - 1)], 2.0);
+	/// ```
+	#[inline]
+	pub fn col_capacity(&self) -> usize {
+		self.0.raw.col_capacity
+	}
+
 	/// returns the number of rows of the matrix
 	#[inline]
 	pub fn nrows(&self) -> Rows {

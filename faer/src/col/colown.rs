@@ -12,6 +12,29 @@ fn idx_to_pair<T, R>(f: impl FnMut(T) -> R) -> impl FnMut(T, usize) -> R {
 	move |i, _| f(i)
 }
 impl<T, Rows: Shape> Col<T, Rows> {
+	/// returns the allocated storage capacity, in scalar elements.
+	///
+	/// this may exceed the logical dimension because of alignment padding.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use faer::Col;
+	/// let mut vector = Col::<f64>::zeros(3);
+	/// vector.reserve(17);
+	/// let capacity = vector.capacity();
+	/// let pointer = vector.as_ptr();
+	/// assert!(capacity >= 17);
+	/// vector.resize_with(capacity, |_| 2.0);
+	/// assert_eq!(vector.as_ptr(), pointer);
+	/// assert_eq!(vector[0], 0.0);
+	/// assert_eq!(vector[capacity - 1], 2.0);
+	/// ```
+	#[inline]
+	pub fn capacity(&self) -> usize {
+		self.0.column.row_capacity()
+	}
+
 	/// returns a new column with dimension `nrows`, filled with the provided
 	/// function
 	pub fn from_fn(nrows: Rows, f: impl FnMut(Idx<Rows>) -> T) -> Self {

@@ -6,6 +6,29 @@ pub struct Own<T, Cols: Shape = usize> {
 	pub(crate) trans: Col<T, Cols>,
 }
 impl<T, Cols: Shape> Row<T, Cols> {
+	/// returns the allocated storage capacity, in scalar elements.
+	///
+	/// this may exceed the logical dimension because of alignment padding.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use faer::Row;
+	/// let mut vector = Row::<f64>::zeros(3);
+	/// vector.reserve(17);
+	/// let capacity = vector.capacity();
+	/// let pointer = vector.as_ptr();
+	/// assert!(capacity >= 17);
+	/// vector.resize_with(capacity, |_| 2.0);
+	/// assert_eq!(vector.as_ptr(), pointer);
+	/// assert_eq!(vector[0], 0.0);
+	/// assert_eq!(vector[capacity - 1], 2.0);
+	/// ```
+	#[inline]
+	pub fn capacity(&self) -> usize {
+		self.0.trans.capacity()
+	}
+
 	/// returns a new row with dimension `ncols`, filled with the provided
 	/// function
 	#[inline]
