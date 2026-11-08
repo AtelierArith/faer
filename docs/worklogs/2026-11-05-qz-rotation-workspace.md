@@ -26,7 +26,11 @@ convert its sine convention explicitly. Keep the g=0 identity/returned-f branch.
 No per-call allocation, dynamic dispatch or matrix-size loop is introduced.
 
 The AED local Sylvester solve owns four usize permutation arrays. Its query
-listed one. Reserve the actual four arrays rather than depending on padding or
+listed one. [#260](https://github.com/tensor4all/faer/issues/260) independently
+reproduces this at n=18/blocking_threshold=15 after #253 plus the exact #255
+sentinel correction: 2,112 queried bytes panic requesting a 24-byte LU record.
+Changing only the array count gives 2,304 bytes and completes QZ; its retained
+numerical assertion still fails at ratio 61.65 (tracked with #257). Reserve the actual four arrays rather than depending on padding or
 another scratch branch accidentally covering the shortfall. A child-module
 regression executes a full 2x2/2x2 swap with the AED query's workspace and checks
 both pencil reconstructions.
@@ -114,3 +118,14 @@ focused tests and existing numerical evidence apply unchanged. This record is
 the only subsequent content change; numerical sources, manifests and Cargo.lock
 remain identical to the validated candidate. Required checks run for the new
 ancestry/head; no main merge or registry publication is performed here.
+
+
+## Current main compatibility
+
+The candidate now builds on main `e4c6d57e`. The sentinel correction and
+public QZ regressions are supplied by main; this PR retains only its rotation
+and four-array workspace corrections, tests and validation registrations.
+The rotation helper and the new public regression sources are unchanged from
+`e475baf`; main's existing even-rounded AED workspace assertion is retained.
+Historical validation above describes its recorded revisions; current-head
+hosted validation must complete again before adoption.
