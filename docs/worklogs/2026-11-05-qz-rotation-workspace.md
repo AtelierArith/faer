@@ -1,13 +1,18 @@
 # Generalized-Hessenberg rotation range and AED workspace
 
 Issues: [#256](https://github.com/tensor4all/faer/issues/256),
-[#252](https://github.com/tensor4all/faer/issues/252).
-Dependencies: [#255](https://github.com/tensor4all/faer/pull/255) fixes the
-independent row-zero deflation sentinel; [#253](https://github.com/tensor4all/faer/pull/253)
-fixes the even-rounded window query. This branch stacks on #255 and temporarily
-carries #253's identical one-line window bound for its validation. Those changes
-are dependencies, not another claim of their authorship. Retarget/rebase onto
-main after they merge.
+[#260](https://github.com/tensor4all/faer/issues/260).
+
+The current base is main `e4c6d57e`. This PR owns the generalized-Hessenberg
+rotation correction and AED Sylvester index reservation. The even-rounded
+window query (#253, related to #252) and row-zero sentinel correction (#255)
+are already in main and are not changes contributed by this PR.
+
+As [the maintainer clarified](https://github.com/tensor4all/faer/pull/258#issuecomment-6638555959),
+the earlier closure followed deletion of the #255 base branch; it was not a
+review rejection or a decision to abandon this change. The PR now targets main
+and its rebase conflicts have been resolved, preserving main's regressions
+and this PR's additional CI registrations.
 
 ## Design
 
@@ -30,12 +35,17 @@ listed one. [#260](https://github.com/tensor4all/faer/issues/260) independently
 reproduces this at n=18/blocking_threshold=15 after #253 plus the exact #255
 sentinel correction: 2,112 queried bytes panic requesting a 24-byte LU record.
 Changing only the array count gives 2,304 bytes and completes QZ; its retained
-numerical assertion still fails at ratio 61.65 (tracked with #257). Reserve the actual four arrays rather than depending on padding or
+numerical assertion still fails at ratio 61.65 (tracked with #257). Reserve
+the actual four arrays rather than depending on padding or
 another scratch branch accidentally covering the shortfall. A child-module
 regression executes a full 2x2/2x2 swap with the AED query's workspace and checks
 both pencil reconstructions.
 
-## Evidence
+## Historical evidence
+
+The results below describe the original candidate and its recorded baseline,
+not a rerun of all checks on current main. Current-base evidence is separated
+below.
 
 Four public finite-pencil tests cover f32/f64/c32/c64, subnormals, zero/nonzero
 components, complex phase, signs and large finite entries. They verify finite
@@ -63,7 +73,7 @@ execution took minutes; that is a local runtime observation, not a speed claim.
 This is a range/bounds correction, not a proof of all QZ numerical accuracy.
 [#257](https://github.com/tensor4all/faer/issues/257) remains open: the n=78
 maximum-window fixture has a DGET54-style coupled residual ratio 436.6 on
-unmodified main versus 0.7724 from LAPACK. The local range-safety candidate
+the recorded baseline `19053d8` versus 0.7724 from LAPACK. The local range-safety candidate
 reduces the ratio to 178.6 but does not meet the diagnostic threshold 20.
 No tolerance is raised and no full-window accuracy fix is claimed here.
 
@@ -129,3 +139,9 @@ The rotation helper and the new public regression sources are unchanged from
 `e475baf`; main's existing even-rounded AED workspace assertion is retained.
 Historical validation above describes its recorded revisions; current-head
 hosted validation must complete again before adoption.
+
+Current-base focused validation passes eight tests: four scalar rotation tests,
+the public row-zero regression, the public window-query regression, and both
+real-precision exact-query suites. The two opt-in recursive tests were not rerun
+locally on this base. Hosted checks on `99bda9dc` are tracked separately; earlier
+full-suite and aarch64 results do not establish success of the rebased head.
