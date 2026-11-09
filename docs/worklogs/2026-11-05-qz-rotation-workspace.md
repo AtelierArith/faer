@@ -140,8 +140,42 @@ The rotation helper and the new public regression sources are unchanged from
 Historical validation above describes its recorded revisions; current-head
 hosted validation must complete again before adoption.
 
-Current-base focused validation passes eight tests: four scalar rotation tests,
-the public row-zero regression, the public window-query regression, and both
-real-precision exact-query suites. The two opt-in recursive tests were not rerun
-locally on this base. Hosted checks on `99bda9dc` are tracked separately; earlier
-full-suite and aarch64 results do not establish success of the rebased head.
+All validation statements in the sections above, including each "eight tests
+pass" statement, the residual ratios (436.6, 178.6, 61.65, 0.7724) and the
+workspace byte counts (2,112/2,304 and 40,448/40,960), are records from the time
+they were written. Their command output is not attached to this PR, and they
+were not re-measured for the current head. The next section records what was
+re-run for the current head.
+
+## Current-head validation (2026-11-10)
+
+Run locally on the tree of `2c7bf5c` (Darwin arm64, rustc 1.96.0). The commit
+after it changes only this record.
+
+- CI focused command, `cargo test -p t4a-faer --no-default-features --features
+  "std,linalg" --test lsmr_initial_residual --test generalized_schur_reorder
+  --test generalized_schur_reorder_no_alloc --test public_qz_aed --test
+  public_qz_scratch --test generalized_hessenberg_rotations --test qz_scratch`:
+  43 passed, 0 failed, 2 ignored. The eight focused tests are among them:
+  `generalized_hessenberg_rotations` 4/4, `public_qz_aed` 1/1,
+  `public_qz_scratch` 1/1 and the exact-query suites in `qz_scratch` 2/2. The
+  2 ignored tests are the opt-in recursive n=258 tests, which were not run.
+- `cargo test -p t4a-faer --lib givens`: 5 passed (`test_givens` and the four
+  `test_givens_subnormal_*` tests added here).
+- `cargo test -p t4a-faer --lib qz`: 12 passed, 0 failed, 16 ignored (the
+  ignored tests are opt-in LAPACK reorder validation).
+- Mutation check. `make_givens` was temporarily changed to return `r = 0`
+  whenever both inputs are nonzero subnormals, leaving `c` and `s` unchanged.
+  `--lib givens` then failed all four `test_givens_subnormal_*` tests at the
+  `c f + s g = r` assertion (f64: error 7.49e-23 > bound 5.29e-23 at `f = g =
+  5e-324` after scaling by 2^1000; f32: 2.63e-9 > 1.86e-9). The public
+  `generalized_hessenberg_rotations` tests stayed 4/4 green under the same
+  mutation, which confirms that their absolute reconstruction bound misses this
+  failure. With the mutation reverted, all five `givens` tests pass.
+- `cargo clippy -p t4a-faer --all-targets --keep-going -- -D warnings` fails
+  identically on `1446210` and on `2c7bf5c`: 2399 errors in the lib and 2632 in
+  the lib test target, none in the added lines. CI's blocking clippy step covers
+  only `t4a-faer-traits`.
+
+Not re-measured: the residual ratios, the workspace byte counts, the recursive
+n=258 tests and hosted CI.
