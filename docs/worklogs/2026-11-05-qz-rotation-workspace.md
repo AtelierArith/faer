@@ -3,7 +3,8 @@
 Issues: [#256](https://github.com/tensor4all/faer/issues/256),
 [#260](https://github.com/tensor4all/faer/issues/260).
 
-The current base is main `e4c6d57e`. This PR owns the generalized-Hessenberg
+The current base is main `1be2ace`, merged into this branch by merge commit
+`d800f78` (the earlier base was `e4c6d57e`). This PR owns the generalized-Hessenberg
 rotation correction and AED Sylvester index reservation. The even-rounded
 window query (#253, related to #252) and row-zero sentinel correction (#255)
 are already in main and are not changes contributed by this PR.
@@ -132,7 +133,8 @@ ancestry/head; no main merge or registry publication is performed here.
 
 ## Current main compatibility
 
-The candidate now builds on main `e4c6d57e`. The sentinel correction and
+The candidate was rebased onto main `e4c6d57e`; main `1be2ace` was later merged
+in as `d800f78` (no force push, so reviewed SHAs remain). The sentinel correction and
 public QZ regressions are supplied by main; this PR retains only its rotation
 and four-array workspace corrections, tests and validation registrations.
 The rotation helper and the new public regression sources are unchanged from
@@ -179,3 +181,22 @@ after it changes only this record.
 
 Not re-measured: the residual ratios, the workspace byte counts, the recursive
 n=258 tests and hosted CI.
+
+## After merging main `1be2ace` (merge commit `d800f78`)
+
+The only conflict was the focused test line in `ci.yml`: main added
+`public_householder_upgrade` (and separate `faer-ffi` / `lu_perf_warn` steps);
+the resolution keeps main's line and appends `generalized_hessenberg_rotations`
+and `qz_scratch`. Re-run locally on the tree of `d800f78` (Darwin arm64,
+rustc 1.96.0); the commit after it changes only this record and PATCHSET.
+
+- The resolved CI focused command (main's line plus the two targets above):
+  50 passed, 0 failed, 2 ignored (`generalized_hessenberg_rotations` 4,
+  `generalized_schur_reorder` 31, `generalized_schur_reorder_no_alloc` 1,
+  `lsmr_initial_residual` 4, `public_householder_upgrade` 6, `public_qz_aed` 1,
+  `public_qz_scratch` 1, `qz_scratch` 2 passed / 2 ignored recursive, not run).
+- `cargo test -p t4a-faer --lib givens`: 5 passed.
+- `cargo test -p t4a-faer --lib qz`: 13 passed, 0 failed, 16 ignored.
+
+The mutation check and the clippy comparison above were not repeated on
+`d800f78`.
