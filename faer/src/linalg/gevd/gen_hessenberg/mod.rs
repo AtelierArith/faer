@@ -809,6 +809,113 @@ mod tests {
 		assert!((x * c + y * s - r).norm() < 1e-6);
 		assert!((-x * s.conj() + y * c).norm() < 1e-6);
 	}
+	/// Checks `make_givens` on pairs of nonzero subnormal inputs.
+	///
+	/// The rotation is homogeneous, so `c` and `s` are unchanged when both
+	/// inputs are multiplied by the power of two `scale`, and multiplying
+	/// subnormals by a power of two is exact. The identities
+	/// `c f + s g = r` and `c g - conj(s) f = 0` are therefore checked in the
+	/// scaled domain with a relative bound, plus at most one subnormal unit
+	/// for the rounding of `r` itself. This detects a lost or wrongly
+	/// rounded subnormal `r`, which an absolute `O(eps)` bound cannot.
+	fn check_subnormal_givens<T: ComplexField>(
+		make: fn(f64, f64) -> T,
+		tiny: f64,
+		min_normal: f64,
+		scale: f64,
+	) {
+		let (u, m) = (tiny, min_normal);
+		// (f, g, exact r): r is listed only where it is exactly representable.
+		let cases = [
+			(make(u, 0.0), make(u, 0.0), None),
+			(
+				make(3.0 * u, 0.0),
+				make(4.0 * u, 0.0),
+				Some(make(5.0 * u, 0.0)),
+			),
+			(make(-3.0 * u, 0.0), make(4.0 * u, 0.0), None),
+			(make(m / 2.0, 0.0), make(m / 4.0, 0.0), None),
+			(make(0.375 * m, 0.0), make(-0.5 * m, 0.0), None),
+			(make(-0.5 * m, 0.0), make(u, 0.0), None),
+			(make(u, u), make(-2.0 * u, 3.0 * u), None),
+			(
+				make(0.25 * m, -0.125 * m),
+				make(-0.0625 * m, 0.375 * m),
+				None,
+			),
+		];
+		let scale = from_f64::<T::Real>(scale);
+		let eps = eps::<T::Real>();
+		let bound_eps = from_f64::<T::Real>(8.0) * &eps;
+		let ulp = from_f64::<T::Real>(0.75 * tiny) * &scale;
+		let min_normal = from_f64::<T::Real>(min_normal);
+		for (f, g, expected) in cases {
+			for x in [&f, &g] {
+				assert!(all(*x != zero::<T>(), abs(x) < min_normal));
+			}
+			let (c, s, r) = make_givens(f.copy(), g.copy());
+			assert!(all(is_finite(&c), is_finite(&s), is_finite(&r)));
+			let fs = f.mul_real(&scale);
+			let gs = g.mul_real(&scale);
+			let rs = r.mul_real(&scale);
+			let norm = hypot(&abs(&fs), &abs(&gs));
+			let image = fs.mul_real(&c) + &gs * &s;
+			let annihilated = gs.mul_real(&c) - &fs * s.conj();
+			let image_error = abs(&(image - &rs));
+			let annihilated_error = abs(&annihilated);
+			let unit = abs2(&s) + &c * &c - one::<T::Real>();
+			let image_bound = &bound_eps * &norm + &ulp;
+			let annihilated_bound = &bound_eps * &norm;
+			assert!(
+				image_error <= image_bound,
+				"f = {f:?}, g = {g:?}, r = {r:?}"
+			);
+			assert!(
+				annihilated_error <= annihilated_bound,
+				"f = {f:?}, g = {g:?}, c = {c:?}, s = {s:?}"
+			);
+			assert!(abs(&unit) <= from_f64::<T::Real>(4.0) * &eps);
+			if let Some(expected) = expected {
+				assert!(r == expected, "f = {f:?}, g = {g:?}, r = {r:?}");
+			}
+		}
+	}
+	#[test]
+	fn test_givens_subnormal_f32() {
+		check_subnormal_givens::<f32>(
+			|r, _| r as f32,
+			f32::from_bits(1) as f64,
+			f32::MIN_POSITIVE as f64,
+			2.0f64.powi(120),
+		);
+	}
+	#[test]
+	fn test_givens_subnormal_f64() {
+		check_subnormal_givens::<f64>(
+			|r, _| r,
+			f64::from_bits(1),
+			f64::MIN_POSITIVE,
+			2.0f64.powi(1000),
+		);
+	}
+	#[test]
+	fn test_givens_subnormal_c32() {
+		check_subnormal_givens::<c32>(
+			|r, i| c32::new(r as f32, i as f32),
+			f32::from_bits(1) as f64,
+			f32::MIN_POSITIVE as f64,
+			2.0f64.powi(120),
+		);
+	}
+	#[test]
+	fn test_givens_subnormal_c64() {
+		check_subnormal_givens::<c64>(
+			c64::new,
+			f64::from_bits(1),
+			f64::MIN_POSITIVE,
+			2.0f64.powi(1000),
+		);
+	}
 	#[test]
 	fn test_hessenberg() {
 		let rng = &mut StdRng::seed_from_u64(0);
