@@ -528,6 +528,49 @@ mod tests {
 	use crate::{Mat, Row, assert, c64};
 	use dyn_stack::MemBuffer;
 
+	/// [`copy_r`] reaches the tiled gate of `copy_lower_across_layouts` the long
+	/// way round: it copies the *upper* triangle, and
+	/// `MatMut::copy_from_triangular_upper` transposes both views, so a
+	/// column-major packed matrix and a row-major destination arrive at the
+	/// lower copy as the source and destination it tiles, with the working set
+	/// of the `k x n` factor. The route is pinned on both sides of the
+	/// threshold, square, wide and tall: the per-thread tiled-copy counter moves
+	/// by exactly one where the gate should tile and stays put where it should
+	/// fall back, which equal values alone cannot tell apart.
+	#[test]
+	fn copy_r_reaches_the_tiled_copy_gate() {
+		use crate::linalg::{tile_copy_pays, tiled_copies};
+		for (m, n, tiled) in [
+			(512, 512, true),
+			(256, 256, false),
+			// wide: `k = 256`, a `256 x 2048` factor is 8 MiB over both buffers
+			(256, 2048, true),
+			(64, 2048, false),
+			// tall: the factor is only `k x n = 256 x 256`
+			(2048, 256, false),
+		] {
+			let k = Ord::min(m, n);
+			let packed = Mat::<f64>::from_fn(m, n, |i, j| (i + 2 * j) as f64);
+			assert!(tile_copy_pays::<f64>(n, k) == tiled);
+			// a row-major `k x n` destination: the transpose of a column-major
+			// `n x k` allocation
+			let mut out_col = Mat::<f64>::from_fn(n, k, |_, _| -1.0);
+			let before = tiled_copies();
+			copy_r(out_col.transpose_mut(), packed.as_ref(), false);
+			assert!(
+				tiled_copies() - before == tiled as usize,
+				"{m}x{n}: copy_r took the {} path",
+				if tiled { "elementwise" } else { "tiled" }
+			);
+			for j in 0..n {
+				for i in 0..k {
+					let want = if i <= j { packed[(i, j)] } else { 0.0 };
+					assert!(out_col[(j, i)] == want, "{m}x{n}: entry ({i}, {j})");
+				}
+			}
+		}
+	}
+
 	#[test]
 	fn test_qr() {
 		let rng = &mut StdRng::seed_from_u64(0);
