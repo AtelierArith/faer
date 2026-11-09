@@ -30,7 +30,16 @@ fn best_score<T: ComplexField, S: Simd>(
 	score: RealReg<T::SimdVec<S>>,
 	indices: T::SimdIndex<S>,
 ) -> (RealReg<T::SimdVec<S>>, T::SimdIndex<S>) {
-	let is_better = (**simd).gt(score, best_score);
+	// merges two accumulators of one column, which hold interleaved rows: on equal
+	// scores the smaller row wins, whichever accumulator holds it, so a tie goes to
+	// the smallest row as in the scalar search (tensor4all/faer#342)
+	let is_better = (**simd).or_mask(
+		(**simd).gt(score, best_score),
+		(**simd).and_mask(
+			(**simd).ge(score, best_score),
+			T::simd_index_less_than(&simd.0, indices, best_indices),
+		),
+	);
 	(
 		RealReg(simd.select(is_better, score.0, best_score.0)),
 		simd.iselect(is_better, indices, best_indices),
@@ -571,6 +580,53 @@ pub fn lu_in_place_scratch<I: Index, T: ComplexField>(
 		.array(2)
 		.and(StackReq::new::<(usize, usize, T::Real)>(par.degree()))
 }
+/// Whether `lu_in_place` factors a matrix with these strides through a
+/// column-major copy rather than in place.
+///
+/// The copy is [`linalg::row_major_copy_pays`]'s (no unit row stride, tall or
+/// square, at least `64 * 64` elements), less one layout: a square matrix below
+/// `128` whose rows are contiguous (`col_stride == 1`, any row stride, so a
+/// padded or reversed row-major view counts). That one goes through the
+/// transpose dual (`lu_in_place_unblocked(.., transpose = true)`), whose fused
+/// SIMD update needs exactly that unit column stride. A generic-stride view
+/// (neither stride `1`, or a column stride of `-1`) keeps the copy: in place it
+/// would fall to the separate matrix update and pivot search.
+///
+/// The square exclusion is what was measured (tensor4all/faer#314): `64 x 64`
+/// f64 one thread costs 1.24x a column-major input through the copy and 1.01x
+/// through the dual on Apple M5 Max, 1.32x and 1.03x on Zen 5. The dual was
+/// timed at `64`, `80`, `96`, `112`, `120` and `127` on M5 and at `64` and `96`
+/// on Zen 5; the sizes in between are taken on the strength of their
+/// neighbours. From `128` up the dual's row scaling `A[(k, j)] *= inv` walks a
+/// strided row every step, one cache line per element, and the dual leaves the
+/// 1.05x band on at least one machine: 1.09x at `512` and `1024` on four
+/// threads (M5), 1.11x at `128` and 1.08-1.27x from `256` on Zen 5 (the scaling
+/// alone goes from 0.22 to 3.26 ms at `1024`, one thread). On a tall matrix the
+/// dual also makes the long swap strided and the trailing block wide
+/// (1.4-2.1x), and off the square it leaves the band early (`80 x 64`: 1.06x),
+/// so only the square shapes skip the copy.
+#[inline]
+pub(crate) fn row_major_takes_the_copy(
+	nrows: usize,
+	ncols: usize,
+	row_stride: isize,
+	col_stride: isize,
+) -> bool {
+	row_stride.unsigned_abs() != 1
+		&& nrows >= ncols
+		&& ncols > 1
+		&& linalg::row_major_copy_pays(nrows, ncols)
+		&& !(col_stride == 1 && nrows == ncols && ncols < 128)
+}
+/// `perf-warn`: whether neither stride walks a line, i.e. the input is neither
+/// column-major (`row_stride` 1) nor row-major (`col_stride` 1). Both preferred
+/// layouts factor at the same speed, so only a matrix that is neither warns;
+/// the predicate this replaced warned on every row-major input.
+#[cfg(any(feature = "perf-warn", test))]
+#[inline]
+pub(crate) fn has_generic_strides(row_stride: isize, col_stride: isize) -> bool {
+	row_stride.unsigned_abs() != 1 && col_stride.unsigned_abs() != 1
+}
 #[derive(Copy, Clone, Debug)]
 pub struct FullPivLuInfo {
 	pub transposition_count: usize,
@@ -578,6 +634,52 @@ pub struct FullPivLuInfo {
 	/// [rank truncation](FullPivLuParams#rank-truncation) option stopped the factorization
 	pub rank: usize,
 }
+/// # Pivot ties
+///
+/// When several entries of the remaining block share the largest magnitude,
+/// the pivot depends on the layout, because the search runs on one of two
+/// matrices:
+///
+/// 1. If `row_major_takes_the_copy` holds (in this module's source: `|row
+///    stride| != 1`, tall or square, at least `64 * 64` elements, not a square
+///    matrix below `128` with `col_stride == 1`), the input is copied to
+///    column-major and the copy is searched as it is.
+/// 2. Otherwise the input itself is searched as it is when `|row_stride| <
+///    |col_stride|`, and its transpose is searched when `|row_stride| >=
+///    |col_stride|`.
+///
+/// Among the tied entries of the matrix that is searched, the pivot is, for a
+/// **real** `T`, the one in the smallest column, then the smallest row, of the
+/// remaining block at that step (positions after the earlier swaps), on the SIMD
+/// search as on the scalar one. So a column-major input, or a row-major one that
+/// is copied, breaks a tie by column first, and a row-major input that is not
+/// copied (a square one below `128`, a wide one, one below `64 * 64` elements)
+/// breaks it by row first.
+///
+/// For a **complex** `T` the index order among tied entries is not part of the
+/// contract, because the two searches do not always score an entry the same
+/// way. The scalar one compares `|re| + |im|`. The SIMD one, used when `T` has
+/// SIMD support and the matrix searched is column-major, compares `|re| +
+/// |im|` too for a generic `Complex<T>` such as `cx128`; for the native `c32`
+/// and `c64`, when the dispatched vector holds the parts in separate lanes (a
+/// target with SIMD lanes, not pulp's `Scalar` fallback), it compares the
+/// components of the absolute value separately, so an entry with the larger
+/// real or imaginary part wins over one with a larger `|re| + |im|`. On an
+/// Apple M5 a zero `16 x 16` c64 matrix with `A[(0, 1)] = 3 + 4i` and `A[(2,
+/// 1)] = 5` and `max_rank = Some(1)` pivots on `(2, 1)` under SIMD and on `(0,
+/// 1)` without it, although `|re| + |im|` is larger at `(0, 1)`; the same
+/// `cx128` matrix pivots on `(0, 1)` either way. Both scores lie within
+/// `sqrt(2)` of the modulus, so the pivot's modulus is at least `1 / sqrt(2)`
+/// of the largest in the block either way. Ties are still resolved inside the
+/// matrix that is searched, so the layout argument above holds; only the index
+/// order within one searched matrix is unspecified for complex `T`.
+///
+/// For example, a zero `64 x 64` f64 matrix with `A[(1, 2)] = A[(0, 4)] = 2`
+/// and `max_rank = Some(1)` pivots on `(1, 2)` (two transpositions) when
+/// column-major and on `(0, 4)` (one transposition) when row-major; so does an
+/// `8 x 16` matrix with the same two entries. Both are valid full-pivoting
+/// factorizations of the same matrix, but the permutations, the transposition
+/// count and so the factors differ between the two layouts.
 pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 	mat: MatMut<'_, T>,
 	row_perm: &'out mut [I],
@@ -589,22 +691,18 @@ pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 	params: Spec<FullPivLuParams, T>,
 ) -> (FullPivLuInfo, PermRef<'out, I>, PermRef<'out, I>) {
 	#[cfg(feature = "perf-warn")]
-	if (mat.col_stride().unsigned_abs() == 1
-		|| mat.row_stride().unsigned_abs() != 1)
-		&& crate::__perf_warn!(LU_WARN)
+	if has_generic_strides(mat.row_stride(), mat.col_stride()) && crate::__perf_warn!(LU_WARN)
 	{
 		log::warn!(
 			target : "faer_perf",
 			"LU with full pivoting prefers column-major or row-major matrix. Found matrix with generic strides."
 		);
 	}
-	// Same row-major adaptation as the partial-pivoting factorisation above.
+	// Same row-major adaptation as the partial-pivoting factorisation above, except
+	// on the small square shapes with contiguous rows the transpose dual factors
+	// in place at the column-major speed.
 	let (M, N) = mat.shape();
-	if mat.row_stride().unsigned_abs() != 1
-		&& M >= N
-		&& N > 1
-		&& linalg::row_major_copy_pays(M, N)
-	{
+	if row_major_takes_the_copy(M, N, mat.row_stride(), mat.col_stride()) {
 		let mut work = linalg::column_major_copy(mat.rb(), par.reborrow());
 		let mut work = MatMut::from_column_major_slice_mut(&mut work, M, N);
 		let ret = lu_in_place(
@@ -829,6 +927,45 @@ mod tests {
 				best_in_matrix_fallback(a.as_ref()),
 				"{m}x{n}"
 			);
+		}
+	}
+
+	/// Within one column the SIMD search splits the rows over four accumulators (three in the
+	/// fused update), lane by lane. Two equal maxima in one column can land in different
+	/// accumulators with the larger row in the one merged first; the merge must still keep the
+	/// smaller row (tensor4all/faer#342 review: `A[(6, 2)] = A[(8, 2)]` returned row 8 on a
+	/// two-lane build). Every pair of rows is tried, so the test holds whatever the lane count.
+	#[test]
+	fn pivot_search_keeps_the_smaller_row_across_accumulators() {
+		let m = 64;
+		for r0 in 0..m {
+			for r1 in r0 + 1..m {
+				let mut a = crate::Mat::<f64>::zeros(m, 3);
+				a[(r0, 1)] = 2.0;
+				a[(r1, 1)] = 2.0;
+				assert_eq!(
+					best_in_matrix(a.as_ref()),
+					(r0, 1, 2.0),
+					"rows {r0}, {r1}"
+				);
+
+				// the fused update with a zero update leaves the matrix as it is
+				let lhs = crate::Col::<f64>::zeros(m);
+				let rhs = crate::Row::<f64>::zeros(3);
+				for align in [0, 1, 3] {
+					let mut b = a.clone();
+					assert_eq!(
+						rank_one_update_and_best_in_matrix(
+							b.as_mut(),
+							lhs.as_ref(),
+							rhs.as_ref(),
+							align
+						),
+						(r0, 1, 2.0),
+						"update, rows {r0}, {r1}, align {align}"
+					);
+				}
+			}
 		}
 	}
 
@@ -1686,5 +1823,17 @@ mod tests {
 		let b = ColRef::from_slice(&b);
 		let lu = A.full_piv_lu(Par::Seq);
 		assert!(lu.solve(b, Par::Seq).is_all_finite());
+	}
+
+	/// `perf-warn`: contiguous column-major and row-major inputs are the two
+	/// recommended layouts, so the warning fires only for a matrix that is neither.
+	/// The predicate this replaced warned on every row-major one.
+	#[test]
+	fn perf_warn_predicate_excludes_both_preferred_layouts() {
+		assert!(!has_generic_strides(1, 64)); // column-major
+		assert!(!has_generic_strides(64, 1)); // row-major
+		assert!(!has_generic_strides(-64, 1)); // reversed row-major
+		assert!(has_generic_strides(2, 130)); // neither strides a line
+		assert!(has_generic_strides(-2, -130));
 	}
 }
