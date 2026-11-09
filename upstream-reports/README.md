@@ -1,6 +1,6 @@
 # Upstream reports
 
-This list is updated over time. Last updated: 2026-11-04.
+This list is updated over time. Last updated: 2026-11-09.
 
 This directory lists defects that we found while working on a port of `faer` and that also occur in the published upstream crates.
 Each entry was reproduced by running its program against the upstream release named in the table.
@@ -53,16 +53,45 @@ The program prints the expected and the actual value, and exits with status 1 wh
 | [faer-036](faer-036-gevd-hessenberg-clear-wrong-rectangle/) | The generalized Hessenberg reduction clears the reduced columns when no right transformation is requested | `faer` 0.24.4 | NaN | tensor4all/faer#219 (`8d8b648`) | not yet | 2026-11-03 |
 | [faer-037](faer-037-partial-svd-small-shape/) | `partial_svd` panics for small matrices and for a full projection | `faer` 0.24.4 | panic | tensor4all/faer#216 (`ea09256`) | not yet | 2026-11-04 |
 | [faer-038](faer-038-gevd-repeated-complex-pair-nan/) | Generalized eigenvectors are NaN for a repeated complex-conjugate pair | `faer` 0.24.4 | NaN | fix for tensor4all/faer#220 | not yet | 2026-11-04 |
+| [faer-039](faer-039-norm-max-ignores-nan/) | `norm_max` ignores NaN entries | `faer` 0.24.4 | wrong value | tensor4all/faer#319 (`c911ff3`) | not yet | 2026-11-09 |
+| [faer-040](faer-040-stats-negative-output-stride/) | The `stats` reductions write their output in reverse when the output axis has a negative stride | `faer` 0.24.4 | wrong value | tensor4all/faer#319 (`c911ff3`) | not yet | 2026-11-09 |
+| [faer-041](faer-041-zst-capacity-panic/) | `Mat::<()>::with_capacity(1, 1)` panics with a division by zero | `faer` 0.24.4 | panic | tensor4all/faer#288 (`a977480`) | not yet | 2026-11-09 |
+| [faer-042](faer-042-lu-perf-warn-row-major/) | Partial pivoting LU warns "generic strides" on contiguous row-major input | `faer` 0.24.4 | spurious `perf-warn` message | fix for tensor4all/faer#345 | not yet | 2026-11-09 |
 | [gemm-001](gemm-001-per-call-allocation/) | Every matrix product allocates on the heap | `gemm` 0.19.0 | heap allocation per call | not fixed (tensor4all/faer#56 planned) | not yet | 2026-10-30 |
 | [gemm-x86-001](gemm-x86-001-diag-negative-stride/) | A product with a diagonal gives a wrong value when the left matrix is stored backwards | `private-gemm-x86` 0.1.22 | wrong value | tensor4all/t4a-private-gemm-x86#5 (`84ca6db`) | not yet | 2026-10-29 |
 
-"Fixed upstream" was checked against each crate's upstream `main` and its latest release: `faer` at `0ecd846` (2026-10-22) and its 0.24.4 release, `gemm` at `86102c5`, which is its 0.19.0 release, `private-gemm-x86` at `71872b9`, which is its 0.1.22 release.
-Every entry was re-run on 2026-11-03; no newer release existed to raise a pin to, and `gemm`'s and `private-gemm-x86`'s `main` are their release commits, so only `faer` needed a build from `main`.
-`gemm-x86-001` needs an x86 CPU, and on aarch64 `faer-001` and `faer-026` do not trigger, as their sections state.
+"Fixed upstream" was checked against each crate's upstream `main` and its latest release on 2026-11-09: `faer` at `0ecd846` (2026-10-22) and its 0.24.4 release, `gemm` at `86102c5`, which is its 0.19.0 release, `private-gemm-x86` at `71872b9`, which is its 0.1.22 release.
+The 39 entries that predate this week (`faer-001` to `faer-038`, plus `gemm-001`) were all re-run on 2026-11-09 on the aarch64 host where this list is recorded, and they behave as their sections state (on aarch64 `faer-001` and `faer-026` do not trigger, as their sections say); no newer release existed to raise a pin to, and `gemm`'s and `private-gemm-x86`'s `main` are their release commits, so only `faer` needed a build from `main`.
+`gemm-x86-001` needs an x86 CPU and does not build on aarch64; it was run on x86_64 on 2026-11-09, where it builds and exits 1 as its section states.
+The three entries added this week (`faer-039`, `faer-040`, `faer-041`) were run from their own directories on both hosts and then against `faer`'s `main` at `0ecd846` as a path dependency, where they exit 1 with the same numbers; the one row where the two hosts disagree is marked in the `faer-039` table.
+That is 44 programs in total, and every one of them was executed on 2026-11-09 on a host where it builds and runs.
+The `perf-warn` entry (`faer-042`) was added on 2026-11-09 and run on its own, `cd upstream-reports/faer-042-* && cargo run --locked`, which exits 1 on its contiguous row-major input and 0 with `-- column-major`.
+The sweep of the 39 is `cd upstream-reports && for d in faer-0[01][0-9]-* faer-02[0-9]-* faer-03[0-8]-* gemm-001-*; do (cd "$d" && timeout 600 cargo run --locked); echo "$d exit=$?"; done`, which selects 39 directories.
+The sweep of the three is `cd upstream-reports && for d in faer-039-* faer-040-* faer-041-*; do (cd "$d" && timeout 600 cargo run --locked); echo "$d exit=$?"; done`, which selects 3, and the x86 entry is `cd upstream-reports/gemm-x86-001-* && cargo run --locked`.
 `faer`'s `main` is the 0.24.4 release plus eleven commits, and only the `gevd` scratch layout and conjugate-pair slots among them touch the code behind an entry: `faer-009`, re-run there, still fails.
 
 Each README states, in its first three lines, what goes wrong, for which input and in which version.
 It then gives the command, a table of expected and actual output, the cause with file and line in the upstream source, and how this fork fixed it.
+
+## Performance reports, at a glance
+
+The defect table above answers "is the value wrong". Its sibling answers "is the same code path needlessly slow", and it is
+easy to miss one level down, so the three reports that are built today are listed here as well. A performance entry's symptom is
+always a **time or a ratio**, never a wrong value, and where an entry compares two routes to the same answer its README states
+which check the program runs: the adapted factorization must equal the column-major one exactly for the row-major QR, the solutions
+must be bit-identical for the triangular solve, and the SME comparison asserts an `n · eps` absolute bound on four sampled entries
+while reporting, but not requiring, that the whole product is bit-identical.
+
+| Report | What is slow | Host-specific? |
+|---|---|---|
+| [perf-faer-001](performance/perf-faer-001-qr-row-major/) | QR of a row-major matrix is up to 31 times slower than copying it to column major first | slow path: no; the reproducer builds only on macOS (Apple QoS call) |
+| [perf-faer-002](performance/perf-faer-002-trsm-aliased-rhs/) | The unit lower triangular solve is up to 2.6 times slower at a power-of-two stride | slow path: no; the reproducer builds only on macOS (Apple QoS call) |
+| [perf-gemm-001](performance/perf-gemm-001-apple-sme-unused/) | `gemm` does not use the matrix unit of an Apple M4 or M5 | yes, needs SME |
+
+[`performance/README.md`](performance/README.md) is the authoritative page: it carries the confirmed upstream versions, the fix in
+this fork, whether upstream has fixed it, the measurement contract, and the inventory of claims that are not yet reports. This table
+deliberately does not repeat those columns — two copies of a version number drift, and the copy that drifts is the one a reader trusts.
+
 
 Upstream sources:
 [faer](https://codeberg.org/sarah-quinones/faer),

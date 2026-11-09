@@ -10,7 +10,26 @@ Changes since `t4a-faer` 0.32.0 (tag `faer-v0.32.0`). Numbers are tensor4all/fae
   An empty matrix still returns 0. Code that relied on NaN being skipped, for example `norm_max() < tol` as a test that holds for a matrix with
   NaN entries, now sees NaN, and every comparison with NaN is false (#316).
 
+## Performance
+
+- `factorize_symbolic_lu_with_column_ordering` and `factorize_symbolic_qr_with_column_ordering` no longer request the COLAMD
+  workspace when the caller supplies the column ordering. COLAMD only runs in the `None` branch, but the `MemBuffer` was sized with
+  `StackReq::or(colamd::order_scratch(..), ..)` either way, so the ordering was paid for twice. On the issue's reproducer (n = 2000,
+  nnz = 7990, identity ordering, `--release`) the largest single allocation of a simplicial analysis drops from 332712 B, which was
+  exactly the `colamd::order_scratch` request, to 239928 B, which is the analysis workspace (92784 B less); the supernodal arm still
+  allocates 468080 B, which did not change. That figure was attributed afterwards (measured at `e756f13` and at `b989876`, two runs
+  each): it is not a four-array request but one `Vec<usize>` of 58510 elements, allocated three times per symbolic analysis inside
+  `cholesky::supernodal::ghost_factorize_supernodal_symbolic`; the 64000 B helper only sizes a `MemBuffer` and never appears as its own
+  allocation. See tensor4all/faer#340. The `None` path requests what it
+  requested before, and no caller `MemStack` variant is added: that is an API decision, not part of this fix (#322).
+
 ## Correctness
+
+- `gevd_cplx` returned wrong left eigenvectors for some pencils with an infinite eigenvalue (a zero on the diagonal of `B` during the QZ
+  iteration's unblocked path, which the default parameters run for `n < max(15, blocking_threshold)`, i.e. `n < 75`, and which the blocked path
+  also ends in), while the eigenvalues and the right eigenvectors were right. The rotations that chase that zero to the bottom were
+  applied to the rows of `Q` instead of its columns. Whether a pencil reaches that branch depends on rounding, so the same input could fail on
+  x86-64 with AVX2 and pass on aarch64 (#324).
 
 - `stats::col_mean` and `stats::col_varm` wrote their results in reverse order when the input had a negative row stride (for example
   `mat.reverse_rows()`), and `row_mean`/`row_varm` did the same for a negative column stride (`mat.reverse_cols()`). Both `NanHandling` modes

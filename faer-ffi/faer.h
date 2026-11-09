@@ -59,11 +59,6 @@ typedef enum FaerV0_24_Conj {
   FaerV0_24_Conj_Yes,
 } FaerV0_24_Conj;
 
-typedef enum FaerV0_24_ParTag {
-  FaerV0_24_ParTag_Seq,
-  FaerV0_24_ParTag_Rayon,
-} FaerV0_24_ParTag;
-
 typedef enum FaerV0_24_ComputeEigenvectors {
   FaerV0_24_ComputeEigenvectors_No,
   FaerV0_24_ComputeEigenvectors_Yes,
@@ -93,6 +88,18 @@ typedef enum FaerV0_24_ComputeSvdVectors {
 typedef struct FaerV0_24_Real FaerV0_24_Real;
 
 typedef struct FaerV0_24_Scalar FaerV0_24_Scalar;
+
+/**
+ * A handle to a team: the ownership of the participants of a parallel region.
+ *
+ * The handle owns one [`threadteam::Pool`] of its width, built by
+ * [`libfaer_v0_23_team_create`]. Every operation borrows it for the duration of one call: the pool
+ * becomes a team, the operation runs inside it, and the pool comes back out before the call
+ * returns (see `Team::with_par`). No team token is carried, because C cannot express the scope
+ * one is valid for, so a team is never held across a C frame and the calling thread is never inside
+ * a team between calls. `NULL` stands for "no team", which runs the operation sequentially.
+ */
+typedef struct FaerV0_24_Team FaerV0_24_Team;
 
 typedef struct FaerV0_24_BidiagParams {
   size_t par_threshold;
@@ -214,11 +221,6 @@ typedef struct FaerV0_24_MatMut {
   ptrdiff_t row_stride;
   ptrdiff_t col_stride;
 } FaerV0_24_MatMut;
-
-typedef struct FaerV0_24_Par {
-  enum FaerV0_24_ParTag tag;
-  size_t nthreads;
-} FaerV0_24_Par;
 
 typedef struct FaerV0_24_MemAlloc {
   void *ptr;
@@ -726,42 +728,42 @@ void libfaer_v0_23_apply_householder_on_the_left_c32(struct FaerV0_24_MatRef hou
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_left_c64(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_left_cx128(struct FaerV0_24_MatRef householder_basis,
                                                        struct FaerV0_24_MatRef householder_factor,
                                                        enum FaerV0_24_Conj householder_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par,
+                                                       const struct FaerV0_24_Team *team,
                                                        struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_left_f32(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_left_f64(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_left_fx128(struct FaerV0_24_MatRef householder_basis,
                                                        struct FaerV0_24_MatRef householder_factor,
                                                        enum FaerV0_24_Conj householder_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par,
+                                                       const struct FaerV0_24_Team *team,
                                                        struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_c32(size_t dim,
@@ -792,42 +794,42 @@ void libfaer_v0_23_apply_householder_on_the_right_c32(struct FaerV0_24_MatRef ho
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
                                                       struct FaerV0_24_MatMut lhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_right_c64(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
                                                       struct FaerV0_24_MatMut lhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_right_cx128(struct FaerV0_24_MatRef householder_basis,
                                                         struct FaerV0_24_MatRef householder_factor,
                                                         enum FaerV0_24_Conj householder_conj,
                                                         struct FaerV0_24_MatMut lhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_right_f32(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
                                                       struct FaerV0_24_MatMut lhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_right_f64(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
                                                       struct FaerV0_24_MatMut lhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_on_the_right_fx128(struct FaerV0_24_MatRef householder_basis,
                                                         struct FaerV0_24_MatRef householder_factor,
                                                         enum FaerV0_24_Conj householder_conj,
                                                         struct FaerV0_24_MatMut lhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_c32(size_t dim,
@@ -858,42 +860,42 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_c32(struct FaerV0_24_
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
                                                                struct FaerV0_24_MatMut rhs,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_left_c64(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
                                                                struct FaerV0_24_MatMut rhs,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_left_cx128(struct FaerV0_24_MatRef householder_basis,
                                                                  struct FaerV0_24_MatRef householder_factor,
                                                                  enum FaerV0_24_Conj householder_conj,
                                                                  struct FaerV0_24_MatMut rhs,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_left_f32(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
                                                                struct FaerV0_24_MatMut rhs,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_left_f64(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
                                                                struct FaerV0_24_MatMut rhs,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_left_fx128(struct FaerV0_24_MatRef householder_basis,
                                                                  struct FaerV0_24_MatRef householder_factor,
                                                                  enum FaerV0_24_Conj householder_conj,
                                                                  struct FaerV0_24_MatMut rhs,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_c32(size_t dim,
@@ -924,42 +926,42 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_c32(struct FaerV0_24
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
                                                                 struct FaerV0_24_MatMut lhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_right_c64(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
                                                                 struct FaerV0_24_MatMut lhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_right_cx128(struct FaerV0_24_MatRef householder_basis,
                                                                   struct FaerV0_24_MatRef householder_factor,
                                                                   enum FaerV0_24_Conj householder_conj,
                                                                   struct FaerV0_24_MatMut lhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_right_f32(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
                                                                 struct FaerV0_24_MatMut lhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_right_f64(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
                                                                 struct FaerV0_24_MatMut lhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_apply_householder_transpose_on_the_right_fx128(struct FaerV0_24_MatRef householder_basis,
                                                                   struct FaerV0_24_MatRef householder_factor,
                                                                   enum FaerV0_24_Conj householder_conj,
                                                                   struct FaerV0_24_MatMut lhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_c32(size_t dim,
@@ -989,80 +991,80 @@ struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_s
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_c32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_c64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_cx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_f32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_f64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_fx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_c32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_c64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_cx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_f32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_f64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_fx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1070,7 +1072,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c64(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1078,7 +1080,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_cx12
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
                                                                                   struct FaerV0_24_SliceMut perm_bwd,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
@@ -1086,7 +1088,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f32(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1094,7 +1096,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f64(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1102,7 +1104,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_fx12
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
                                                                                   struct FaerV0_24_SliceMut perm_bwd,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
@@ -1110,7 +1112,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c32(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1118,7 +1120,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c64(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1126,7 +1128,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_cx12
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
                                                                                   struct FaerV0_24_SliceMut perm_bwd,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
@@ -1134,7 +1136,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f32(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1142,7 +1144,7 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f64(
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
                                                                                 struct FaerV0_24_SliceMut perm_bwd,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
@@ -1150,57 +1152,57 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_fx12
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
                                                                                   struct FaerV0_24_SliceMut perm_bwd,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_c32(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_c64(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_cx128(size_t dim,
                                                                           size_t block_size,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_f32(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_f64(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_fx128(size_t dim,
                                                                           size_t block_size,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_c32(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_c64(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_cx128(size_t dim,
                                                                           size_t block_size,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_f32(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_f64(size_t dim,
                                                                         size_t block_size,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_fx128(size_t dim,
                                                                           size_t block_size,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
@@ -1208,7 +1210,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_c64(struct FaerV0_24_MatMut A,
@@ -1217,7 +1219,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_cx128(struct FaerV0_24_MatMut A,
@@ -1226,7 +1228,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef R,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_f32(struct FaerV0_24_MatMut A,
@@ -1235,7 +1237,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_f64(struct FaerV0_24_MatMut A,
@@ -1244,7 +1246,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u32_fx128(struct FaerV0_24_MatMut A,
@@ -1253,7 +1255,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef R,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_c32(struct FaerV0_24_MatMut A,
@@ -1262,7 +1264,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_c64(struct FaerV0_24_MatMut A,
@@ -1271,7 +1273,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_cx128(struct FaerV0_24_MatMut A,
@@ -1280,7 +1282,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef R,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_f32(struct FaerV0_24_MatMut A,
@@ -1289,7 +1291,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_f64(struct FaerV0_24_MatMut A,
@@ -1298,7 +1300,7 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef R,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_inverse_u64_fx128(struct FaerV0_24_MatMut A,
@@ -1307,68 +1309,68 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef R,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_c32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_c64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_f32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_f64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_c32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_c64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_f32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_f64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
@@ -1376,7 +1378,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
@@ -1385,7 +1387,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
@@ -1394,7 +1396,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef R,
                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                    struct FaerV0_24_SliceRef perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
@@ -1403,7 +1405,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
@@ -1412,7 +1414,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
@@ -1421,7 +1423,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef R,
                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                    struct FaerV0_24_SliceRef perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
@@ -1430,7 +1432,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
@@ -1439,7 +1441,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
@@ -1448,7 +1450,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef R,
                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                    struct FaerV0_24_SliceRef perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
@@ -1457,7 +1459,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
@@ -1466,7 +1468,7 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef R,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
@@ -1475,68 +1477,68 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef R,
                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                    struct FaerV0_24_SliceRef perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
@@ -1545,7 +1547,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c32(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1555,7 +1557,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c64(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1565,7 +1567,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_cx128(struct FaerV0_24_MatRef Q_
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
@@ -1575,7 +1577,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f32(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
@@ -1585,7 +1587,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f64(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -1595,7 +1597,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_fx128(struct FaerV0_24_MatRef Q_
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
@@ -1605,7 +1607,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c32(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1615,7 +1617,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c64(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1625,7 +1627,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_cx128(struct FaerV0_24_MatRef Q_
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
@@ -1635,7 +1637,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f32(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
@@ -1645,7 +1647,7 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f64(struct FaerV0_24_MatRef Q_ba
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -1655,80 +1657,80 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_fx128(struct FaerV0_24_MatRef Q_
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_c32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_c64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_cx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
-                                                                                       struct FaerV0_24_Par par);
+                                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_f32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_f64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_fx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
-                                                                                       struct FaerV0_24_Par par);
+                                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_c32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_c64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_cx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
-                                                                                       struct FaerV0_24_Par par);
+                                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_f32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_f64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
-                                                                                     struct FaerV0_24_Par par);
+                                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_fx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
-                                                                                       struct FaerV0_24_Par par);
+                                                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
@@ -1737,7 +1739,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c32(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1747,7 +1749,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c64(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1757,7 +1759,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_cx128(struct FaerV0_24_Mat
                                                             struct FaerV0_24_SliceRef perm_fwd,
                                                             struct FaerV0_24_SliceRef perm_bwd,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par,
+                                                            const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
@@ -1767,7 +1769,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f32(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
@@ -1777,7 +1779,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f64(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -1787,7 +1789,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_fx128(struct FaerV0_24_Mat
                                                             struct FaerV0_24_SliceRef perm_fwd,
                                                             struct FaerV0_24_SliceRef perm_bwd,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par,
+                                                            const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
@@ -1797,7 +1799,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c32(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1807,7 +1809,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c64(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1817,7 +1819,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_cx128(struct FaerV0_24_Mat
                                                             struct FaerV0_24_SliceRef perm_fwd,
                                                             struct FaerV0_24_SliceRef perm_bwd,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par,
+                                                            const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
@@ -1827,7 +1829,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f32(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
@@ -1837,7 +1839,7 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f64(struct FaerV0_24_MatRe
                                                           struct FaerV0_24_SliceRef perm_fwd,
                                                           struct FaerV0_24_SliceRef perm_bwd,
                                                           struct FaerV0_24_MatMut rhs,
-                                                          struct FaerV0_24_Par par,
+                                                          const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -1847,68 +1849,68 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_fx128(struct FaerV0_24_Mat
                                                             struct FaerV0_24_SliceRef perm_fwd,
                                                             struct FaerV0_24_SliceRef perm_bwd,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par,
+                                                            const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
-                                                                                         struct FaerV0_24_Par par);
+                                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
@@ -1917,7 +1919,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c32(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1927,7 +1929,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c64(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1937,7 +1939,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_cx128(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef perm_fwd,
                                                                 struct FaerV0_24_SliceRef perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
@@ -1947,7 +1949,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f32(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
@@ -1957,7 +1959,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f64(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -1967,7 +1969,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_fx128(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef perm_fwd,
                                                                 struct FaerV0_24_SliceRef perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
@@ -1977,7 +1979,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c32(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
@@ -1987,7 +1989,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c64(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -1997,7 +1999,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_cx128(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef perm_fwd,
                                                                 struct FaerV0_24_SliceRef perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
@@ -2007,7 +2009,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f32(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
@@ -2017,7 +2019,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f64(struct FaerV0_24_M
                                                               struct FaerV0_24_SliceRef perm_fwd,
                                                               struct FaerV0_24_SliceRef perm_bwd,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -2027,7 +2029,7 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_fx128(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef perm_fwd,
                                                                 struct FaerV0_24_SliceRef perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_dealloc(void *ptr, size_t size, size_t align);
@@ -2037,7 +2039,7 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UR,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_VecMut S_im,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
@@ -2046,7 +2048,7 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UR,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_VecMut S_im,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
@@ -2055,7 +2057,7 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut UR,
                                                    struct FaerV0_24_VecMut S,
                                                    struct FaerV0_24_VecMut S_im,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_EvdParams params);
 
@@ -2064,7 +2066,7 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UR,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_VecMut S_im,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
@@ -2073,7 +2075,7 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UR,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_VecMut S_im,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
@@ -2082,104 +2084,104 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut UR,
                                                    struct FaerV0_24_VecMut S,
                                                    struct FaerV0_24_VecMut S_im,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_c32(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_c64(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_cx128(size_t dim,
                                                         enum FaerV0_24_ComputeEigenvectors compute_left,
                                                         enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_f32(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_f64(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_fx128(size_t dim,
                                                         enum FaerV0_24_ComputeEigenvectors compute_left,
                                                         enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_EvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_c32(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_c64(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                                     size_t block_size,
-                                                                                    struct FaerV0_24_Par par,
+                                                                                    const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f32(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                                     size_t block_size,
-                                                                                    struct FaerV0_24_Par par,
+                                                                                    const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_c32(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_c64(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                                     size_t block_size,
-                                                                                    struct FaerV0_24_Par par,
+                                                                                    const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_f32(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_f64(size_t dim,
                                                                                   size_t block_size,
-                                                                                  struct FaerV0_24_Par par,
+                                                                                  const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                                     size_t block_size,
-                                                                                    struct FaerV0_24_Par par,
+                                                                                    const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
@@ -2187,7 +2189,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2196,7 +2198,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2205,7 +2207,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
@@ -2214,7 +2216,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2223,7 +2225,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2232,7 +2234,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
@@ -2241,7 +2243,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2250,7 +2252,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2259,7 +2261,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
@@ -2268,7 +2270,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2277,7 +2279,7 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                   struct FaerV0_24_Par par,
+                                                                                   const struct FaerV0_24_Team *team,
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
@@ -2286,45 +2288,45 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut col_perm_bwd,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_c32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_c64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_cx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_f32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_f64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_fx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_c32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_c64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_cx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_f32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_f64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_fx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
@@ -2333,7 +2335,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
@@ -2343,7 +2345,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
@@ -2353,7 +2355,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_SliceRef row_perm_bwd,
                                                  struct FaerV0_24_SliceRef col_perm_fwd,
                                                  struct FaerV0_24_SliceRef col_perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
@@ -2363,7 +2365,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
@@ -2373,7 +2375,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
@@ -2383,7 +2385,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_SliceRef row_perm_bwd,
                                                  struct FaerV0_24_SliceRef col_perm_fwd,
                                                  struct FaerV0_24_SliceRef col_perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
@@ -2393,7 +2395,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
@@ -2403,7 +2405,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
@@ -2413,7 +2415,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_SliceRef row_perm_bwd,
                                                  struct FaerV0_24_SliceRef col_perm_fwd,
                                                  struct FaerV0_24_SliceRef col_perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
@@ -2423,7 +2425,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
@@ -2433,7 +2435,7 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_SliceRef row_perm_bwd,
                                                struct FaerV0_24_SliceRef col_perm_fwd,
                                                struct FaerV0_24_SliceRef col_perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
@@ -2443,56 +2445,56 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_SliceRef row_perm_bwd,
                                                  struct FaerV0_24_SliceRef col_perm_fwd,
                                                  struct FaerV0_24_SliceRef col_perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_c32(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_c64(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                                 size_t ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f32(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                                 size_t ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_c32(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_c64(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                                 size_t ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_f32(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_f64(size_t nrows,
                                                                               size_t ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                                 size_t ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
@@ -2501,7 +2503,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
@@ -2511,7 +2513,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
@@ -2521,7 +2523,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_SliceRef row_perm_bwd,
                                                      struct FaerV0_24_SliceRef col_perm_fwd,
                                                      struct FaerV0_24_SliceRef col_perm_bwd,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
@@ -2531,7 +2533,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
@@ -2541,7 +2543,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
@@ -2551,7 +2553,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_SliceRef row_perm_bwd,
                                                      struct FaerV0_24_SliceRef col_perm_fwd,
                                                      struct FaerV0_24_SliceRef col_perm_bwd,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
@@ -2561,7 +2563,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
@@ -2571,7 +2573,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
@@ -2581,7 +2583,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_SliceRef row_perm_bwd,
                                                      struct FaerV0_24_SliceRef col_perm_fwd,
                                                      struct FaerV0_24_SliceRef col_perm_bwd,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
@@ -2591,7 +2593,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
@@ -2601,7 +2603,7 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_SliceRef row_perm_bwd,
                                                    struct FaerV0_24_SliceRef col_perm_fwd,
                                                    struct FaerV0_24_SliceRef col_perm_bwd,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
@@ -2611,56 +2613,56 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_SliceRef row_perm_bwd,
                                                      struct FaerV0_24_SliceRef col_perm_fwd,
                                                      struct FaerV0_24_SliceRef col_perm_bwd,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                    size_t rhs_ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                    size_t rhs_ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                    size_t rhs_ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                  size_t rhs_ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                    size_t rhs_ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -2670,7 +2672,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -2681,7 +2683,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -2692,7 +2694,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef 
                                                         struct FaerV0_24_SliceRef col_perm_fwd,
                                                         struct FaerV0_24_SliceRef col_perm_bwd,
                                                         struct FaerV0_24_MatMut rhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -2703,7 +2705,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -2714,7 +2716,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -2725,7 +2727,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef 
                                                         struct FaerV0_24_SliceRef col_perm_fwd,
                                                         struct FaerV0_24_SliceRef col_perm_bwd,
                                                         struct FaerV0_24_MatMut rhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -2736,7 +2738,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -2747,7 +2749,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -2758,7 +2760,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef 
                                                         struct FaerV0_24_SliceRef col_perm_fwd,
                                                         struct FaerV0_24_SliceRef col_perm_bwd,
                                                         struct FaerV0_24_MatMut rhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -2769,7 +2771,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -2780,7 +2782,7 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_SliceRef col_perm_fwd,
                                                       struct FaerV0_24_SliceRef col_perm_bwd,
                                                       struct FaerV0_24_MatMut rhs,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -2791,56 +2793,56 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef 
                                                         struct FaerV0_24_SliceRef col_perm_fwd,
                                                         struct FaerV0_24_SliceRef col_perm_bwd,
                                                         struct FaerV0_24_MatMut rhs,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                              size_t rhs_ncols,
-                                                                                             struct FaerV0_24_Par par);
+                                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                              size_t rhs_ncols,
-                                                                                             struct FaerV0_24_Par par);
+                                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                              size_t rhs_ncols,
-                                                                                             struct FaerV0_24_Par par);
+                                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                            size_t rhs_ncols,
-                                                                                           struct FaerV0_24_Par par);
+                                                                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                              size_t rhs_ncols,
-                                                                                             struct FaerV0_24_Par par);
+                                                                                             const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
@@ -2850,7 +2852,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -2861,7 +2863,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -2872,7 +2874,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_
                                                                   struct FaerV0_24_SliceRef col_perm_fwd,
                                                                   struct FaerV0_24_SliceRef col_perm_bwd,
                                                                   struct FaerV0_24_MatMut rhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -2883,7 +2885,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -2894,7 +2896,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -2905,7 +2907,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_
                                                                   struct FaerV0_24_SliceRef col_perm_fwd,
                                                                   struct FaerV0_24_SliceRef col_perm_bwd,
                                                                   struct FaerV0_24_MatMut rhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -2916,7 +2918,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -2927,7 +2929,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -2938,7 +2940,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_
                                                                   struct FaerV0_24_SliceRef col_perm_fwd,
                                                                   struct FaerV0_24_SliceRef col_perm_bwd,
                                                                   struct FaerV0_24_MatMut rhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -2949,7 +2951,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -2960,7 +2962,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24
                                                                 struct FaerV0_24_SliceRef col_perm_fwd,
                                                                 struct FaerV0_24_SliceRef col_perm_bwd,
                                                                 struct FaerV0_24_MatMut rhs,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -2971,7 +2973,7 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_
                                                                   struct FaerV0_24_SliceRef col_perm_fwd,
                                                                   struct FaerV0_24_SliceRef col_perm_bwd,
                                                                   struct FaerV0_24_MatMut rhs,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c32(struct FaerV0_24_MatMut A,
@@ -2981,7 +2983,7 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c32(struct FaerV0_24_M
                                                               struct FaerV0_24_VecMut alpha,
                                                               struct FaerV0_24_VecMut alpha_im,
                                                               struct FaerV0_24_VecMut beta,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
@@ -2992,7 +2994,7 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c64(struct FaerV0_24_M
                                                               struct FaerV0_24_VecMut alpha,
                                                               struct FaerV0_24_VecMut alpha_im,
                                                               struct FaerV0_24_VecMut beta,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
@@ -3003,7 +3005,7 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_cx128(struct FaerV0_24
                                                                 struct FaerV0_24_VecMut alpha,
                                                                 struct FaerV0_24_VecMut alpha_im,
                                                                 struct FaerV0_24_VecMut beta,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_GevdParams params);
 
@@ -3014,7 +3016,7 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f32(struct FaerV0_24_M
                                                               struct FaerV0_24_VecMut alpha,
                                                               struct FaerV0_24_VecMut alpha_im,
                                                               struct FaerV0_24_VecMut beta,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
@@ -3025,7 +3027,7 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f64(struct FaerV0_24_M
                                                               struct FaerV0_24_VecMut alpha,
                                                               struct FaerV0_24_VecMut alpha_im,
                                                               struct FaerV0_24_VecMut beta,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
@@ -3036,195 +3038,195 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_fx128(struct FaerV0_24
                                                                 struct FaerV0_24_VecMut alpha,
                                                                 struct FaerV0_24_VecMut alpha_im,
                                                                 struct FaerV0_24_VecMut beta,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_c32(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_c64(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_cx128(size_t dim,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                    struct FaerV0_24_Par par,
+                                                                    const struct FaerV0_24_Team *team,
                                                                     struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_f32(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_f64(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                  struct FaerV0_24_Par par,
+                                                                  const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_fx128(size_t dim,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_right,
-                                                                    struct FaerV0_24_Par par,
+                                                                    const struct FaerV0_24_Team *team,
                                                                     struct FaerV0_24_GevdParams params);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
-                                                           struct FaerV0_24_Par par);
+                                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_lower_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
-                                                           struct FaerV0_24_Par par);
+                                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
-                                                           struct FaerV0_24_Par par);
+                                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_triangular_upper_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
-                                                           struct FaerV0_24_Par par);
+                                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_c32(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_c64(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_cx128(size_t dim,
-                                                                             struct FaerV0_24_Par par,
+                                                                             const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_f32(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_f64(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_fx128(size_t dim,
-                                                                             struct FaerV0_24_Par par,
+                                                                             const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_c32(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_c64(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_cx128(size_t dim,
-                                                                             struct FaerV0_24_Par par,
+                                                                             const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_f32(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_f64(size_t dim,
-                                                                           struct FaerV0_24_Par par,
+                                                                           const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_fx128(size_t dim,
-                                                                             struct FaerV0_24_Par par,
+                                                                             const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3232,7 +3234,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c64(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3240,7 +3242,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_cx128(struct 
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
@@ -3248,7 +3250,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f32(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3256,7 +3258,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f64(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3264,7 +3266,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_fx128(struct 
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
@@ -3272,7 +3274,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c32(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3280,7 +3282,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c64(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3288,7 +3290,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_cx128(struct 
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
@@ -3296,7 +3298,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f32(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3304,7 +3306,7 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f64(struct Fa
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
                                                                        struct FaerV0_24_SliceMut perm_bwd,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
@@ -3312,45 +3314,45 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_fx128(struct 
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_c32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_c64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_cx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_f32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_f64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_fx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_c32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_c64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_cx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_f32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_f64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_fx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_lblt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
@@ -3358,7 +3360,7 @@ void libfaer_v0_23_lblt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
@@ -3367,7 +3369,7 @@ void libfaer_v0_23_lblt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
@@ -3376,7 +3378,7 @@ void libfaer_v0_23_lblt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_VecRef subdiag,
                                           struct FaerV0_24_SliceRef perm_fwd,
                                           struct FaerV0_24_SliceRef perm_bwd,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
@@ -3385,7 +3387,7 @@ void libfaer_v0_23_lblt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
@@ -3394,7 +3396,7 @@ void libfaer_v0_23_lblt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
@@ -3403,7 +3405,7 @@ void libfaer_v0_23_lblt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_VecRef subdiag,
                                           struct FaerV0_24_SliceRef perm_fwd,
                                           struct FaerV0_24_SliceRef perm_bwd,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
@@ -3412,7 +3414,7 @@ void libfaer_v0_23_lblt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
@@ -3421,7 +3423,7 @@ void libfaer_v0_23_lblt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
@@ -3430,7 +3432,7 @@ void libfaer_v0_23_lblt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_VecRef subdiag,
                                           struct FaerV0_24_SliceRef perm_fwd,
                                           struct FaerV0_24_SliceRef perm_bwd,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
@@ -3439,7 +3441,7 @@ void libfaer_v0_23_lblt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
@@ -3448,7 +3450,7 @@ void libfaer_v0_23_lblt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_VecRef subdiag,
                                         struct FaerV0_24_SliceRef perm_fwd,
                                         struct FaerV0_24_SliceRef perm_bwd,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
@@ -3457,44 +3459,44 @@ void libfaer_v0_23_lblt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_VecRef subdiag,
                                           struct FaerV0_24_SliceRef perm_fwd,
                                           struct FaerV0_24_SliceRef perm_bwd,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_c32(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_c64(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_cx128(size_t dim,
-                                                                         struct FaerV0_24_Par par);
+                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_f32(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_f64(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_fx128(size_t dim,
-                                                                         struct FaerV0_24_Par par);
+                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_c32(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_c64(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_cx128(size_t dim,
-                                                                         struct FaerV0_24_Par par);
+                                                                         const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_f32(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_f64(size_t dim,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_fx128(size_t dim,
-                                                                         struct FaerV0_24_Par par);
+                                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_lblt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
@@ -3502,7 +3504,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
@@ -3511,7 +3513,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
@@ -3520,7 +3522,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_VecRef subdiag,
                                               struct FaerV0_24_SliceRef perm_fwd,
                                               struct FaerV0_24_SliceRef perm_bwd,
-                                              struct FaerV0_24_Par par,
+                                              const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
@@ -3529,7 +3531,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
@@ -3538,7 +3540,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
@@ -3547,7 +3549,7 @@ void libfaer_v0_23_lblt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_VecRef subdiag,
                                               struct FaerV0_24_SliceRef perm_fwd,
                                               struct FaerV0_24_SliceRef perm_bwd,
-                                              struct FaerV0_24_Par par,
+                                              const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
@@ -3556,7 +3558,7 @@ void libfaer_v0_23_lblt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
@@ -3565,7 +3567,7 @@ void libfaer_v0_23_lblt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
@@ -3574,7 +3576,7 @@ void libfaer_v0_23_lblt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_VecRef subdiag,
                                               struct FaerV0_24_SliceRef perm_fwd,
                                               struct FaerV0_24_SliceRef perm_bwd,
-                                              struct FaerV0_24_Par par,
+                                              const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
@@ -3583,7 +3585,7 @@ void libfaer_v0_23_lblt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
@@ -3592,7 +3594,7 @@ void libfaer_v0_23_lblt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_VecRef subdiag,
                                             struct FaerV0_24_SliceRef perm_fwd,
                                             struct FaerV0_24_SliceRef perm_bwd,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
@@ -3601,56 +3603,56 @@ void libfaer_v0_23_lblt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_VecRef subdiag,
                                               struct FaerV0_24_SliceRef perm_fwd,
                                               struct FaerV0_24_SliceRef perm_bwd,
-                                              struct FaerV0_24_Par par,
+                                              const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_c32(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_c64(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_f32(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_f64(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_c32(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_c64(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_f32(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_f64(size_t dim,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
@@ -3659,7 +3661,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -3669,7 +3671,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -3679,7 +3681,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -3689,7 +3691,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -3699,7 +3701,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -3709,7 +3711,7 @@ void libfaer_v0_23_lblt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -3719,7 +3721,7 @@ void libfaer_v0_23_lblt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -3729,7 +3731,7 @@ void libfaer_v0_23_lblt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -3739,7 +3741,7 @@ void libfaer_v0_23_lblt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -3749,7 +3751,7 @@ void libfaer_v0_23_lblt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -3759,7 +3761,7 @@ void libfaer_v0_23_lblt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_lblt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -3769,496 +3771,500 @@ void libfaer_v0_23_lblt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                      struct FaerV0_24_LdltRegularization regularization,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem,
                                                                      struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                      struct FaerV0_24_LdltRegularization regularization,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem,
                                                                      struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_c32(size_t dim,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_c64(size_t dim,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_cx128(size_t dim,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_f32(size_t dim,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_f64(size_t dim,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_fx128(size_t dim,
-                                                                         struct FaerV0_24_Par par,
+                                                                         const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_LdltParams params);
 
 void libfaer_v0_23_ldlt_inverse_c32(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_inverse_c64(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_inverse_cx128(struct FaerV0_24_MatMut A_inv,
                                       struct FaerV0_24_MatRef L,
                                       struct FaerV0_24_VecRef D,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_inverse_f32(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_inverse_f64(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_inverse_fx128(struct FaerV0_24_MatMut A_inv,
                                       struct FaerV0_24_MatRef L,
                                       struct FaerV0_24_VecRef D,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_c32(size_t dim,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_c64(size_t dim,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_cx128(size_t dim,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_f32(size_t dim,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_f64(size_t dim,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_fx128(size_t dim,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_ldlt_reconstruct_c32(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_reconstruct_c64(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef D,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_reconstruct_f32(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_reconstruct_f64(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef D,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_c32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_c64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_cx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_f32(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_f64(size_t dim,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_fx128(size_t dim,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_ldlt_solve_in_place_c32(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_solve_in_place_c64(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_solve_in_place_cx128(struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_VecRef D,
                                              enum FaerV0_24_Conj A_conj,
                                              struct FaerV0_24_MatMut rhs,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_solve_in_place_f32(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_solve_in_place_f64(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_ldlt_solve_in_place_fx128(struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_VecRef D,
                                              enum FaerV0_24_Conj A_conj,
                                              struct FaerV0_24_MatMut rhs,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_c32(size_t dim,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_c64(size_t dim,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_cx128(size_t dim,
                                                                         size_t rhs_ncols,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_f32(size_t dim,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_f64(size_t dim,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_fx128(size_t dim,
                                                                         size_t rhs_ncols,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LltRegularization regularization,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_c32(size_t dim,
-                                                                      struct FaerV0_24_Par par,
+                                                                      const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_c64(size_t dim,
-                                                                      struct FaerV0_24_Par par,
+                                                                      const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_cx128(size_t dim,
-                                                                        struct FaerV0_24_Par par,
+                                                                        const struct FaerV0_24_Team *team,
                                                                         struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_f32(size_t dim,
-                                                                      struct FaerV0_24_Par par,
+                                                                      const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_f64(size_t dim,
-                                                                      struct FaerV0_24_Par par,
+                                                                      const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_fx128(size_t dim,
-                                                                        struct FaerV0_24_Par par,
+                                                                        const struct FaerV0_24_Team *team,
                                                                         struct FaerV0_24_LltParams params);
 
 void libfaer_v0_23_llt_inverse_c32(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
-                                   struct FaerV0_24_Par par,
+                                   const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_inverse_c64(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
-                                   struct FaerV0_24_Par par,
+                                   const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_inverse_cx128(struct FaerV0_24_MatMut A_inv,
                                      struct FaerV0_24_MatRef L,
-                                     struct FaerV0_24_Par par,
+                                     const struct FaerV0_24_Team *team,
                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_inverse_f32(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
-                                   struct FaerV0_24_Par par,
+                                   const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_inverse_f64(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
-                                   struct FaerV0_24_Par par,
+                                   const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_inverse_fx128(struct FaerV0_24_MatMut A_inv,
                                      struct FaerV0_24_MatRef L,
-                                     struct FaerV0_24_Par par,
+                                     const struct FaerV0_24_Team *team,
                                      struct FaerV0_24_MemAlloc mem);
 
-struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c32(size_t dim, struct FaerV0_24_Par par);
+struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c32(size_t dim,
+                                                              const struct FaerV0_24_Team *team);
 
-struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c64(size_t dim, struct FaerV0_24_Par par);
+struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c64(size_t dim,
+                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_cx128(size_t dim,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
-struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f32(size_t dim, struct FaerV0_24_Par par);
+struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f32(size_t dim,
+                                                              const struct FaerV0_24_Team *team);
 
-struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f64(size_t dim, struct FaerV0_24_Par par);
+struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f64(size_t dim,
+                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_fx128(size_t dim,
-                                                                struct FaerV0_24_Par par);
+                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_llt_reconstruct_c32(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
-                                       struct FaerV0_24_Par par,
+                                       const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_reconstruct_c64(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
-                                       struct FaerV0_24_Par par,
+                                       const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                          struct FaerV0_24_MatRef L,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_reconstruct_f32(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
-                                       struct FaerV0_24_Par par,
+                                       const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_reconstruct_f64(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
-                                       struct FaerV0_24_Par par,
+                                       const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                          struct FaerV0_24_MatRef L,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_c32(size_t dim,
-                                                                  struct FaerV0_24_Par par);
+                                                                  const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_c64(size_t dim,
-                                                                  struct FaerV0_24_Par par);
+                                                                  const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_cx128(size_t dim,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_f32(size_t dim,
-                                                                  struct FaerV0_24_Par par);
+                                                                  const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_f64(size_t dim,
-                                                                  struct FaerV0_24_Par par);
+                                                                  const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_fx128(size_t dim,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_llt_solve_in_place_c32(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_solve_in_place_c64(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_solve_in_place_cx128(struct FaerV0_24_MatRef L,
                                             enum FaerV0_24_Conj A_conj,
                                             struct FaerV0_24_MatMut rhs,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_solve_in_place_f32(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_solve_in_place_f64(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
-                                          struct FaerV0_24_Par par,
+                                          const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_llt_solve_in_place_fx128(struct FaerV0_24_MatRef L,
                                             enum FaerV0_24_Conj A_conj,
                                             struct FaerV0_24_MatMut rhs,
-                                            struct FaerV0_24_Par par,
+                                            const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_c32(size_t dim,
                                                                      size_t rhs_ncols,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_c64(size_t dim,
                                                                      size_t rhs_ncols,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_cx128(size_t dim,
                                                                        size_t rhs_ncols,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_f32(size_t dim,
                                                                      size_t rhs_ncols,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_f64(size_t dim,
                                                                      size_t rhs_ncols,
-                                                                     struct FaerV0_24_Par par);
+                                                                     const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_fx128(size_t dim,
                                                                        size_t rhs_ncols,
-                                                                       struct FaerV0_24_Par par);
+                                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_c32(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
                               struct FaerV0_24_MatRef B,
                               const struct FaerV0_24_Scalar *alpha,
-                              struct FaerV0_24_Par par);
+                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_c64(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
                               struct FaerV0_24_MatRef B,
                               const struct FaerV0_24_Scalar *alpha,
-                              struct FaerV0_24_Par par);
+                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_cx128(struct FaerV0_24_MatMut C,
                                 enum FaerV0_24_Accum accum,
                                 struct FaerV0_24_MatRef A,
                                 struct FaerV0_24_MatRef B,
                                 const struct FaerV0_24_Scalar *alpha,
-                                struct FaerV0_24_Par par);
+                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_f32(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
                               struct FaerV0_24_MatRef B,
                               const struct FaerV0_24_Scalar *alpha,
-                              struct FaerV0_24_Par par);
+                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_f64(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
                               struct FaerV0_24_MatRef B,
                               const struct FaerV0_24_Scalar *alpha,
-                              struct FaerV0_24_Par par);
+                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_fx128(struct FaerV0_24_MatMut C,
                                 enum FaerV0_24_Accum accum,
                                 struct FaerV0_24_MatRef A,
                                 struct FaerV0_24_MatRef B,
                                 const struct FaerV0_24_Scalar *alpha,
-                                struct FaerV0_24_Par par);
+                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_c32(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
@@ -4268,7 +4274,7 @@ void libfaer_v0_23_matmul_triangular_c32(struct FaerV0_24_MatMut C,
                                          struct FaerV0_24_MatRef B,
                                          enum FaerV0_24_Block B_block,
                                          const struct FaerV0_24_Scalar *alpha,
-                                         struct FaerV0_24_Par par);
+                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_c64(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
@@ -4278,7 +4284,7 @@ void libfaer_v0_23_matmul_triangular_c64(struct FaerV0_24_MatMut C,
                                          struct FaerV0_24_MatRef B,
                                          enum FaerV0_24_Block B_block,
                                          const struct FaerV0_24_Scalar *alpha,
-                                         struct FaerV0_24_Par par);
+                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_cx128(struct FaerV0_24_MatMut C,
                                            enum FaerV0_24_Block C_block,
@@ -4288,7 +4294,7 @@ void libfaer_v0_23_matmul_triangular_cx128(struct FaerV0_24_MatMut C,
                                            struct FaerV0_24_MatRef B,
                                            enum FaerV0_24_Block B_block,
                                            const struct FaerV0_24_Scalar *alpha,
-                                           struct FaerV0_24_Par par);
+                                           const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_f32(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
@@ -4298,7 +4304,7 @@ void libfaer_v0_23_matmul_triangular_f32(struct FaerV0_24_MatMut C,
                                          struct FaerV0_24_MatRef B,
                                          enum FaerV0_24_Block B_block,
                                          const struct FaerV0_24_Scalar *alpha,
-                                         struct FaerV0_24_Par par);
+                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_f64(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
@@ -4308,7 +4314,7 @@ void libfaer_v0_23_matmul_triangular_f64(struct FaerV0_24_MatMut C,
                                          struct FaerV0_24_MatRef B,
                                          enum FaerV0_24_Block B_block,
                                          const struct FaerV0_24_Scalar *alpha,
-                                         struct FaerV0_24_Par par);
+                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_matmul_triangular_fx128(struct FaerV0_24_MatMut C,
                                            enum FaerV0_24_Block C_block,
@@ -4318,194 +4324,194 @@ void libfaer_v0_23_matmul_triangular_fx128(struct FaerV0_24_MatMut C,
                                            struct FaerV0_24_MatRef B,
                                            enum FaerV0_24_Block B_block,
                                            const struct FaerV0_24_Scalar *alpha,
-                                           struct FaerV0_24_Par par);
+                                           const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_c32(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_c64(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                                        size_t block_size,
-                                                                                       struct FaerV0_24_Par par,
+                                                                                       const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_f32(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_f64(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                                        size_t block_size,
-                                                                                       struct FaerV0_24_Par par,
+                                                                                       const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_c32(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_c64(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                                        size_t block_size,
-                                                                                       struct FaerV0_24_Par par,
+                                                                                       const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_f32(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_f64(size_t dim,
                                                                                      size_t block_size,
-                                                                                     struct FaerV0_24_Par par,
+                                                                                     const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                                        size_t block_size,
-                                                                                       struct FaerV0_24_Par par,
+                                                                                       const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
-                                                                                           struct FaerV0_24_Par par,
+                                                                                           const struct FaerV0_24_Team *team,
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
-                                                                                           struct FaerV0_24_Par par,
+                                                                                           const struct FaerV0_24_Team *team,
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
-                                                                                           struct FaerV0_24_Par par,
+                                                                                           const struct FaerV0_24_Team *team,
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
-                                                                                         struct FaerV0_24_Par par,
+                                                                                         const struct FaerV0_24_Team *team,
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
-                                                                                           struct FaerV0_24_Par par,
+                                                                                           const struct FaerV0_24_Team *team,
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_c32(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_c64(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_cx128(size_t dim,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_f32(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_f64(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_fx128(size_t dim,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_c32(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_c64(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_cx128(size_t dim,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_f32(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_f64(size_t dim,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_fx128(size_t dim,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
@@ -4513,7 +4519,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
@@ -4521,7 +4527,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef U,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
@@ -4529,7 +4535,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
@@ -4537,7 +4543,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
@@ -4545,7 +4551,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef U,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
@@ -4553,7 +4559,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
@@ -4561,7 +4567,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
@@ -4569,7 +4575,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef U,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
@@ -4577,7 +4583,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
@@ -4585,7 +4591,7 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef U,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
@@ -4593,63 +4599,63 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef U,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_c32(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_c64(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                                    size_t ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_f32(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_f64(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                                    size_t ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_c32(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_c64(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                                    size_t ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_f32(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_f64(size_t nrows,
                                                                                  size_t ncols,
-                                                                                 struct FaerV0_24_Par par);
+                                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                                    size_t ncols,
-                                                                                   struct FaerV0_24_Par par);
+                                                                                   const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
@@ -4657,7 +4663,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
@@ -4665,7 +4671,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut 
                                                         struct FaerV0_24_MatRef U,
                                                         struct FaerV0_24_SliceRef perm_fwd,
                                                         struct FaerV0_24_SliceRef perm_bwd,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
@@ -4673,7 +4679,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
@@ -4681,7 +4687,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
@@ -4689,7 +4695,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut 
                                                         struct FaerV0_24_MatRef U,
                                                         struct FaerV0_24_SliceRef perm_fwd,
                                                         struct FaerV0_24_SliceRef perm_bwd,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
@@ -4697,7 +4703,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
@@ -4705,7 +4711,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
@@ -4713,7 +4719,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut 
                                                         struct FaerV0_24_MatRef U,
                                                         struct FaerV0_24_SliceRef perm_fwd,
                                                         struct FaerV0_24_SliceRef perm_bwd,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
@@ -4721,7 +4727,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
@@ -4729,7 +4735,7 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef U,
                                                       struct FaerV0_24_SliceRef perm_fwd,
                                                       struct FaerV0_24_SliceRef perm_bwd,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
@@ -4737,56 +4743,56 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut 
                                                         struct FaerV0_24_MatRef U,
                                                         struct FaerV0_24_SliceRef perm_fwd,
                                                         struct FaerV0_24_SliceRef perm_bwd,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                       size_t rhs_ncols,
-                                                                                      struct FaerV0_24_Par par);
+                                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                       size_t rhs_ncols,
-                                                                                      struct FaerV0_24_Par par);
+                                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                       size_t rhs_ncols,
-                                                                                      struct FaerV0_24_Par par);
+                                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                     size_t rhs_ncols,
-                                                                                    struct FaerV0_24_Par par);
+                                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                       size_t rhs_ncols,
-                                                                                      struct FaerV0_24_Par par);
+                                                                                      const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
@@ -4794,7 +4800,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -4803,7 +4809,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -4812,7 +4818,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatR
                                                            struct FaerV0_24_SliceRef perm_fwd,
                                                            struct FaerV0_24_SliceRef perm_bwd,
                                                            struct FaerV0_24_MatMut rhs,
-                                                           struct FaerV0_24_Par par,
+                                                           const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -4821,7 +4827,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -4830,7 +4836,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -4839,7 +4845,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatR
                                                            struct FaerV0_24_SliceRef perm_fwd,
                                                            struct FaerV0_24_SliceRef perm_bwd,
                                                            struct FaerV0_24_MatMut rhs,
-                                                           struct FaerV0_24_Par par,
+                                                           const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -4848,7 +4854,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -4857,7 +4863,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -4866,7 +4872,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatR
                                                            struct FaerV0_24_SliceRef perm_fwd,
                                                            struct FaerV0_24_SliceRef perm_bwd,
                                                            struct FaerV0_24_MatMut rhs,
-                                                           struct FaerV0_24_Par par,
+                                                           const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -4875,7 +4881,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -4884,7 +4890,7 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef
                                                          struct FaerV0_24_SliceRef perm_fwd,
                                                          struct FaerV0_24_SliceRef perm_bwd,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par,
+                                                         const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -4893,56 +4899,56 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatR
                                                            struct FaerV0_24_SliceRef perm_fwd,
                                                            struct FaerV0_24_SliceRef perm_bwd,
                                                            struct FaerV0_24_MatMut rhs,
-                                                           struct FaerV0_24_Par par,
+                                                           const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                                 size_t rhs_ncols,
-                                                                                                struct FaerV0_24_Par par);
+                                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                                 size_t rhs_ncols,
-                                                                                                struct FaerV0_24_Par par);
+                                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                                 size_t rhs_ncols,
-                                                                                                struct FaerV0_24_Par par);
+                                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                               size_t rhs_ncols,
-                                                                                              struct FaerV0_24_Par par);
+                                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                                 size_t rhs_ncols,
-                                                                                                struct FaerV0_24_Par par);
+                                                                                                const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
@@ -4950,7 +4956,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -4959,7 +4965,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -4968,7 +4974,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_cx128(struct Faer
                                                                      struct FaerV0_24_SliceRef perm_fwd,
                                                                      struct FaerV0_24_SliceRef perm_bwd,
                                                                      struct FaerV0_24_MatMut rhs,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -4977,7 +4983,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -4986,7 +4992,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -4995,7 +5001,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_fx128(struct Faer
                                                                      struct FaerV0_24_SliceRef perm_fwd,
                                                                      struct FaerV0_24_SliceRef perm_bwd,
                                                                      struct FaerV0_24_MatMut rhs,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -5004,7 +5010,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -5013,7 +5019,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -5022,7 +5028,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_cx128(struct Faer
                                                                      struct FaerV0_24_SliceRef perm_fwd,
                                                                      struct FaerV0_24_SliceRef perm_bwd,
                                                                      struct FaerV0_24_MatMut rhs,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -5031,7 +5037,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -5040,7 +5046,7 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0
                                                                    struct FaerV0_24_SliceRef perm_fwd,
                                                                    struct FaerV0_24_SliceRef perm_bwd,
                                                                    struct FaerV0_24_MatMut rhs,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -5049,435 +5055,435 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_fx128(struct Faer
                                                                      struct FaerV0_24_SliceRef perm_fwd,
                                                                      struct FaerV0_24_SliceRef perm_bwd,
                                                                      struct FaerV0_24_MatMut rhs,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_c32(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_c64(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_cx128(size_t dim,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_f32(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_f64(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_fx128(size_t dim,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_c32(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_c64(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_cx128(size_t dim,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_f32(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_f64(size_t dim,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_fx128(size_t dim,
-                                                                                struct FaerV0_24_Par par,
+                                                                                const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
-                                                                            struct FaerV0_24_Par par,
+                                                                            const struct FaerV0_24_Team *team,
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
-                                                                              struct FaerV0_24_Par par,
+                                                                              const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_c32(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_c64(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_cx128(size_t dim,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_f32(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_f64(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_fx128(size_t dim,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_c32(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_c64(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_cx128(size_t dim,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_f32(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_f64(size_t dim,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_fx128(size_t dim,
-                                                                        struct FaerV0_24_Par par);
+                                                                        const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_piv_llt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
                                            struct FaerV0_24_SliceRef perm_bwd,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
                                              struct FaerV0_24_SliceRef perm_bwd,
-                                             struct FaerV0_24_Par par,
+                                             const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_c32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_c64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_cx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_f32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_f64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_fx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_c32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_c64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_cx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_f32(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_f64(size_t dim,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_fx128(size_t dim,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
                                                struct FaerV0_24_SliceRef perm_bwd,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
                                                  struct FaerV0_24_SliceRef perm_bwd,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_c32(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_c64(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_f32(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_f64(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_c32(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_c64(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_f32(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_f64(size_t dim,
                                                                              size_t rhs_ncols,
-                                                                             struct FaerV0_24_Par par);
+                                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                size_t rhs_ncols,
-                                                                               struct FaerV0_24_Par par);
+                                                                               const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
@@ -5485,7 +5491,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
@@ -5493,7 +5499,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     enum FaerV0_24_Conj A_conj,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
@@ -5501,7 +5507,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
@@ -5509,7 +5515,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
@@ -5517,7 +5523,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     enum FaerV0_24_Conj A_conj,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
@@ -5525,7 +5531,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
@@ -5533,7 +5539,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
@@ -5541,7 +5547,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     enum FaerV0_24_Conj A_conj,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
@@ -5549,7 +5555,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
@@ -5557,7 +5563,7 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_bwd,
                                                   enum FaerV0_24_Conj A_conj,
                                                   struct FaerV0_24_MatMut rhs,
-                                                  struct FaerV0_24_Par par,
+                                                  const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_piv_llt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
@@ -5565,146 +5571,146 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_bwd,
                                                     enum FaerV0_24_Conj A_conj,
                                                     struct FaerV0_24_MatMut rhs,
-                                                    struct FaerV0_24_Par par,
+                                                    const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_MatMut Q_coeff,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
-                                                               struct FaerV0_24_Par par,
+                                                               const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_MatMut Q_coeff,
-                                                                 struct FaerV0_24_Par par,
+                                                                 const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_c32(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_c64(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_cx128(size_t nrows,
                                                                        size_t ncols,
                                                                        size_t block_size,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_f32(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_f64(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_fx128(size_t nrows,
                                                                        size_t ncols,
                                                                        size_t block_size,
-                                                                       struct FaerV0_24_Par par,
+                                                                       const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_QrParams params);
 
 void libfaer_v0_23_qr_inverse_c32(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
                                   struct FaerV0_24_MatRef R,
-                                  struct FaerV0_24_Par par,
+                                  const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_inverse_c64(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
                                   struct FaerV0_24_MatRef R,
-                                  struct FaerV0_24_Par par,
+                                  const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_inverse_cx128(struct FaerV0_24_MatMut A,
                                     struct FaerV0_24_MatRef Q_basis,
                                     struct FaerV0_24_MatRef Q_coeff,
                                     struct FaerV0_24_MatRef R,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_inverse_f32(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
                                   struct FaerV0_24_MatRef R,
-                                  struct FaerV0_24_Par par,
+                                  const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_inverse_f64(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
                                   struct FaerV0_24_MatRef R,
-                                  struct FaerV0_24_Par par,
+                                  const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_inverse_fx128(struct FaerV0_24_MatMut A,
                                     struct FaerV0_24_MatRef Q_basis,
                                     struct FaerV0_24_MatRef Q_coeff,
                                     struct FaerV0_24_MatRef R,
-                                    struct FaerV0_24_Par par,
+                                    const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_c32(size_t dim,
                                                              size_t block_size,
-                                                             struct FaerV0_24_Par par);
+                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_c64(size_t dim,
                                                              size_t block_size,
-                                                             struct FaerV0_24_Par par);
+                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_cx128(size_t dim,
                                                                size_t block_size,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_f32(size_t dim,
                                                              size_t block_size,
-                                                             struct FaerV0_24_Par par);
+                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_f64(size_t dim,
                                                              size_t block_size,
-                                                             struct FaerV0_24_Par par);
+                                                             const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_fx128(size_t dim,
                                                                size_t block_size,
-                                                               struct FaerV0_24_Par par);
+                                                               const struct FaerV0_24_Team *team);
 
 size_t libfaer_v0_23_qr_recommended_block_size_c32(size_t nrows, size_t ncols);
 
@@ -5722,80 +5728,80 @@ void libfaer_v0_23_qr_reconstruct_c32(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
                                       struct FaerV0_24_MatRef R,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_reconstruct_c64(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
                                       struct FaerV0_24_MatRef R,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef Q_basis,
                                         struct FaerV0_24_MatRef Q_coeff,
                                         struct FaerV0_24_MatRef R,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_reconstruct_f32(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
                                       struct FaerV0_24_MatRef R,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_reconstruct_f64(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
                                       struct FaerV0_24_MatRef R,
-                                      struct FaerV0_24_Par par,
+                                      const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef Q_basis,
                                         struct FaerV0_24_MatRef Q_coeff,
                                         struct FaerV0_24_MatRef R,
-                                        struct FaerV0_24_Par par,
+                                        const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_c32(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_c64(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_cx128(size_t nrows,
                                                                    size_t ncols,
                                                                    size_t block_size,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_f32(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_f64(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
-                                                                 struct FaerV0_24_Par par);
+                                                                 const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_fx128(size_t nrows,
                                                                    size_t ncols,
                                                                    size_t block_size,
-                                                                   struct FaerV0_24_Par par);
+                                                                   const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_qr_solve_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef Q_coeff,
                                          struct FaerV0_24_MatRef R,
                                          enum FaerV0_24_Conj A_conj,
                                          struct FaerV0_24_MatMut rhs,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_in_place_c64(struct FaerV0_24_MatRef Q_basis,
@@ -5803,7 +5809,7 @@ void libfaer_v0_23_qr_solve_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef R,
                                          enum FaerV0_24_Conj A_conj,
                                          struct FaerV0_24_MatMut rhs,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -5811,7 +5817,7 @@ void libfaer_v0_23_qr_solve_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
                                            struct FaerV0_24_MatRef R,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_in_place_f32(struct FaerV0_24_MatRef Q_basis,
@@ -5819,7 +5825,7 @@ void libfaer_v0_23_qr_solve_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef R,
                                          enum FaerV0_24_Conj A_conj,
                                          struct FaerV0_24_MatMut rhs,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_in_place_f64(struct FaerV0_24_MatRef Q_basis,
@@ -5827,7 +5833,7 @@ void libfaer_v0_23_qr_solve_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef R,
                                          enum FaerV0_24_Conj A_conj,
                                          struct FaerV0_24_MatMut rhs,
-                                         struct FaerV0_24_Par par,
+                                         const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -5835,45 +5841,45 @@ void libfaer_v0_23_qr_solve_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
                                            struct FaerV0_24_MatRef R,
                                            enum FaerV0_24_Conj A_conj,
                                            struct FaerV0_24_MatMut rhs,
-                                           struct FaerV0_24_Par par,
+                                           const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_c32(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_c64(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_cx128(size_t dim,
                                                                       size_t block_size,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_f32(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_f64(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
-                                                                    struct FaerV0_24_Par par);
+                                                                    const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_fx128(size_t dim,
                                                                       size_t block_size,
                                                                       size_t rhs_ncols,
-                                                                      struct FaerV0_24_Par par);
+                                                                      const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
                                                struct FaerV0_24_MatRef R,
                                                enum FaerV0_24_Conj A_conj,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_c64(struct FaerV0_24_MatRef Q_basis,
@@ -5881,7 +5887,7 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef R,
                                                enum FaerV0_24_Conj A_conj,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -5889,7 +5895,7 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_cx128(struct FaerV0_24_MatRef Q_basis
                                                  struct FaerV0_24_MatRef R,
                                                  enum FaerV0_24_Conj A_conj,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_f32(struct FaerV0_24_MatRef Q_basis,
@@ -5897,7 +5903,7 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef R,
                                                enum FaerV0_24_Conj A_conj,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_f64(struct FaerV0_24_MatRef Q_basis,
@@ -5905,7 +5911,7 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef R,
                                                enum FaerV0_24_Conj A_conj,
                                                struct FaerV0_24_MatMut rhs,
-                                               struct FaerV0_24_Par par,
+                                               const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_lstsq_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -5913,51 +5919,51 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_fx128(struct FaerV0_24_MatRef Q_basis
                                                  struct FaerV0_24_MatRef R,
                                                  enum FaerV0_24_Conj A_conj,
                                                  struct FaerV0_24_MatMut rhs,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_c32(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_c64(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_cx128(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_f32(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_f64(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
-                                                                          struct FaerV0_24_Par par);
+                                                                          const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_fx128(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             size_t rhs_ncols,
-                                                                            struct FaerV0_24_Par par);
+                                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
                                                    struct FaerV0_24_MatRef R,
                                                    enum FaerV0_24_Conj A_conj,
                                                    struct FaerV0_24_MatMut rhs,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_c64(struct FaerV0_24_MatRef Q_basis,
@@ -5965,7 +5971,7 @@ void libfaer_v0_23_qr_solve_transpose_in_place_c64(struct FaerV0_24_MatRef Q_bas
                                                    struct FaerV0_24_MatRef R,
                                                    enum FaerV0_24_Conj A_conj,
                                                    struct FaerV0_24_MatMut rhs,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
@@ -5973,7 +5979,7 @@ void libfaer_v0_23_qr_solve_transpose_in_place_cx128(struct FaerV0_24_MatRef Q_b
                                                      struct FaerV0_24_MatRef R,
                                                      enum FaerV0_24_Conj A_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_f32(struct FaerV0_24_MatRef Q_basis,
@@ -5981,7 +5987,7 @@ void libfaer_v0_23_qr_solve_transpose_in_place_f32(struct FaerV0_24_MatRef Q_bas
                                                    struct FaerV0_24_MatRef R,
                                                    enum FaerV0_24_Conj A_conj,
                                                    struct FaerV0_24_MatMut rhs,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_f64(struct FaerV0_24_MatRef Q_basis,
@@ -5989,7 +5995,7 @@ void libfaer_v0_23_qr_solve_transpose_in_place_f64(struct FaerV0_24_MatRef Q_bas
                                                    struct FaerV0_24_MatRef R,
                                                    enum FaerV0_24_Conj A_conj,
                                                    struct FaerV0_24_MatMut rhs,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
 void libfaer_v0_23_qr_solve_transpose_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
@@ -5997,236 +6003,236 @@ void libfaer_v0_23_qr_solve_transpose_in_place_fx128(struct FaerV0_24_MatRef Q_b
                                                      struct FaerV0_24_MatRef R,
                                                      enum FaerV0_24_Conj A_conj,
                                                      struct FaerV0_24_MatMut rhs,
-                                                     struct FaerV0_24_Par par,
+                                                     const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_c32(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_c64(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_cx128(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_f32(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_f64(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
-                                                                              struct FaerV0_24_Par par);
+                                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_fx128(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols,
-                                                                                struct FaerV0_24_Par par);
+                                                                                const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c32(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c64(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_cx128(struct FaerV0_24_MatRef A,
                                                                 struct FaerV0_24_MatMut U,
                                                                 struct FaerV0_24_VecMut S,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f32(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f64(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
-                                                              struct FaerV0_24_Par par,
+                                                              const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_fx128(struct FaerV0_24_MatRef A,
                                                                 struct FaerV0_24_MatMut U,
                                                                 struct FaerV0_24_VecMut S,
-                                                                struct FaerV0_24_Par par,
+                                                                const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_c32(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_c64(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_cx128(size_t dim,
                                                                      enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_f32(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_f64(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                   struct FaerV0_24_Par par,
+                                                                   const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_fx128(size_t dim,
                                                                      enum FaerV0_24_ComputeEigenvectors compute_U,
-                                                                     struct FaerV0_24_Par par,
+                                                                     const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_SelfAdjointEvdParams params);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_c32(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_c64(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_cx128(struct FaerV0_24_MatRef L,
                                                          enum FaerV0_24_Conj L_conj,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_f32(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_f64(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_lower_in_place_fx128(struct FaerV0_24_MatRef L,
                                                          enum FaerV0_24_Conj L_conj,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_c32(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_c64(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_cx128(struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj U_conj,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_f32(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_f64(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
-                                                       struct FaerV0_24_Par par);
+                                                       const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_triangular_upper_in_place_fx128(struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj U_conj,
                                                          struct FaerV0_24_MatMut rhs,
-                                                         struct FaerV0_24_Par par);
+                                                         const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_c32(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_c64(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_cx128(struct FaerV0_24_MatRef L,
                                                               enum FaerV0_24_Conj L_conj,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_f32(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_f64(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_fx128(struct FaerV0_24_MatRef L,
                                                               enum FaerV0_24_Conj L_conj,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_c32(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_c64(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_cx128(struct FaerV0_24_MatRef U,
                                                               enum FaerV0_24_Conj U_conj,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_f32(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_f64(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
-                                                            struct FaerV0_24_Par par);
+                                                            const struct FaerV0_24_Team *team);
 
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_fx128(struct FaerV0_24_MatRef U,
                                                               enum FaerV0_24_Conj U_conj,
                                                               struct FaerV0_24_MatMut rhs,
-                                                              struct FaerV0_24_Par par);
+                                                              const struct FaerV0_24_Team *team);
 
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_MatMut V,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
@@ -6234,7 +6240,7 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_MatMut V,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
@@ -6242,7 +6248,7 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut U,
                                                    struct FaerV0_24_VecMut S,
                                                    struct FaerV0_24_MatMut V,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_SvdParams params);
 
@@ -6250,7 +6256,7 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_MatMut V,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
@@ -6258,7 +6264,7 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
                                                  struct FaerV0_24_MatMut V,
-                                                 struct FaerV0_24_Par par,
+                                                 const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
@@ -6266,7 +6272,7 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut U,
                                                    struct FaerV0_24_VecMut S,
                                                    struct FaerV0_24_MatMut V,
-                                                   struct FaerV0_24_Par par,
+                                                   const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_SvdParams params);
 
@@ -6274,43 +6280,130 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c32(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
                                                       enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c64(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
                                                       enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_cx128(size_t nrows,
                                                         size_t ncols,
                                                         enum FaerV0_24_ComputeSvdVectors compute_U,
                                                         enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_SvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f32(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
                                                       enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f64(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
                                                       enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                      struct FaerV0_24_Par par,
+                                                      const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
                                                         size_t ncols,
                                                         enum FaerV0_24_ComputeSvdVectors compute_U,
                                                         enum FaerV0_24_ComputeSvdVectors compute_V,
-                                                        struct FaerV0_24_Par par,
+                                                        const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_SvdParams params);
+
+/**
+ * Creates a team handle of `threads` participants: the calling thread and `threads - 1` reserved
+ * workers, the same convention as `faer::team::with_team`. Zero and one both mean sequential, and a
+ * sequential handle reserves nothing.
+ *
+ * The handle **owns its pool**: the workers are built here, once, and every operation handed the
+ * handle borrows them for the duration of that one call (see `Team::with_par`) and hands them
+ * back before returning. A handle reused for N calls builds one pool, not N. The threads exist from
+ * here until [`libfaer_v0_23_team_destroy`]; if the host cannot provide them, this function panics
+ * inside the pool build, and a panic crossing this `extern "C"` boundary aborts the process. A
+ * handle is a promise that the threads exist, and the operations return no status that could carry
+ * an acquisition error.
+ *
+ * The rules the ownership brings, in full:
+ *
+ * * **Two threads, one handle.** An operation may be called on one handle from two threads at once
+ *   as long as they write different elements. They do not run at once: the pool is a single object
+ *   that one call holds for its duration, so the second waits for the first to hand it back. A
+ *   caller that wants its own threads to be parallel wants a handle per thread.
+ * * **A callback must not nest a parallel call.** An operation called from inside another operation
+ *   on the same thread (the `SchurParams` callbacks, for one) runs sequentially: it gets no team,
+ *   where waiting for the pool its caller holds would never end. It is correct, just not parallel.
+ *   Such a call takes no lock, so the turn-taking above does not order it against another thread
+ *   using the same handle: a nested call runs whenever it is made.
+ * * **[`libfaer_v0_23_team_set_threads`] and [`libfaer_v0_23_team_destroy`] are exclusive**: no
+ *   operation may be running on the handle, on any thread, while they are called.
+ * * **After `destroy` the handle is gone.** Any later operation, `set_threads` or second `destroy`
+ *   on that pointer is a use after free: the C caller owns the pointer and nothing can detect it,
+ *   so invalidate your copy where you free it. `destroy(NULL)` is accepted and ignored.
+ * * **After `fork`, a child uses only handles it creates itself.** A handle created before the
+ *   fork names worker threads that do not exist in the child: an operation on it there can wait for
+ *   them forever, and `destroy` there would join threads of another process, so the child must
+ *   neither use nor destroy it. A handle the child creates starts its own workers, which are
+ *   dedicated to it and never pass through threadteam's process-wide cache, so it works whether the
+ *   parent's handles were destroyed before the fork or are still alive at it. The usual limits of
+ *   forking a multithreaded process still apply to everything else (a lock another parent thread
+ *   held at the fork stays held in the child), so `exec` remains the safe shape for a child that
+ *   does more than this. Whether `create` should record the creator's pid and refuse an inherited
+ *   handle is **undecided**, and nothing checks it today.
+ *
+ * The handle's contents are not the caller's to write: it is opaque and must be created and
+ * released by these three functions only.
+ *
+ * ```c
+ * #include "faer.h"
+ *
+ * // line comments only: this block sits inside a C comment
+ * double a[4] = {1, 2, 3, 4};   // 2 x 2, column major
+ * double c[4] = {0, 0, 0, 0};
+ * double one = 1.0;
+ * FaerV0_24_Team *team = libfaer_v0_23_team_create(4);   // NULL would run sequentially
+ * libfaer_v0_23_matmul_f64(
+ *     (FaerV0_24_MatMut){c, 2, 2, 1, 2}, FaerV0_24_Accum_Replace,
+ *     (FaerV0_24_MatRef){a, 2, 2, 1, 2}, (FaerV0_24_MatRef){a, 2, 2, 1, 2},
+ *     (const FaerV0_24_Scalar *)&one, team);    // c = a * a on 4 participants
+ * libfaer_v0_23_team_set_threads(team, 2);     // not while an operation uses the handle
+ * libfaer_v0_23_team_destroy(team);
+ * ```
+ */
+struct FaerV0_24_Team *libfaer_v0_23_team_create(size_t threads);
+
+/**
+ * Releases a handle from [`libfaer_v0_23_team_create`] and the pool it owns; `NULL` is accepted and
+ * ignored.
+ *
+ * The handle is destroyed exactly once, and only while no operation that was handed it is still
+ * running. Dropping the pool ends its workers: they are dedicated to this handle (not threadteam's
+ * process-wide cache of shared workers), so when `destroy` returns every worker thread of the
+ * handle has been joined.
+ */
+void libfaer_v0_23_team_destroy(struct FaerV0_24_Team *team);
+
+/**
+ * Resets the width of an existing handle, so a caller changes its thread count without rebuilding
+ * it. Zero and one both mean sequential, and a sequential handle releases its pool; widening it
+ * again builds a new one. Needs exclusive access to the handle: no operation that was handed it may
+ * be running, and no other call may be setting it.
+ *
+ * Resizing is a reconfiguration, not a per-call cost: the pool is rebuilt here.
+ *
+ * The width is read once, when an operation takes the pool, so a workspace query
+ * (`*_scratch`) made before the change no longer describes an operation of the new width: some
+ * sizes depend on the number of participants (full-pivot LU sizes one pivot candidate per
+ * participant), so query the scratch again after setting the width.
+ */
+void libfaer_v0_23_team_set_threads(struct FaerV0_24_Team *team, size_t threads);
 
 #ifdef __cplusplus
 }  // extern "C"

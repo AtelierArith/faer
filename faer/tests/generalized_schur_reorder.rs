@@ -552,13 +552,27 @@ fn team_case<T: ComplexField>(
 				MemStack::new(&mut mem),
 			)
 			.unwrap();
-			assert_eq!(a, s);
-			assert_eq!(b, t);
-			assert_eq!(u, q);
-			assert_eq!(v, z);
+			// Within the family's tolerance, not bit for bit: bitwise agreement is
+			// promised at a fixed thread count only (docs/reproducibility.md,
+			// tensor4all/faer#327).
+			close(a.as_ref(), s.as_ref());
+			close(b.as_ref(), t.as_ref());
+			close(u.as_ref(), q.as_ref());
+			close(v.as_ref(), z.as_ref());
 		});
 	}
 }
+/// `close` is what `team_case` compares with, so an infinity on one side must fail it: with
+/// `error = inf` and `bound = inf`, `error <= bound` alone would accept the pair.
+#[test]
+#[should_panic(expected = "non-finite")]
+fn close_rejects_an_infinite_reference() {
+	let finite = Mat::<f64>::identity(8, 8);
+	let mut infinite = finite.clone();
+	infinite[(0, 0)] = f64::INFINITY;
+	close(finite.as_ref(), infinite.as_ref());
+}
+
 #[cfg(feature = "threadteam")]
 #[test]
 fn sequential_and_team_agree() {

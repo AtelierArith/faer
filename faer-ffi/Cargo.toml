@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-faer = { package = "t4a-faer", version = "0.24.4", path = "../faer" }
+faer = { package = "t4a-faer", version = "0.32.0", path = "../faer" }
+# the team handle owns a pool (tensor4all/faer#333), so the C boundary names threadteam directly
+threadteam = "0.5.1"
 pastey = "0.2.1"
 
 [build-dependencies]
