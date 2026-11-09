@@ -859,14 +859,121 @@ mod tests {
 		})
 	}
 
+	/// Folds one difference into the running maximum, refusing a non-finite one: `f64::max`
+	/// returns its other operand when one side is NaN, so an all-NaN output would satisfy any
+	/// tolerance.
+	fn max_finite(d: f64, x: f64) -> f64 {
+		assert!(x.is_finite(), "non-finite difference {x}");
+		d.max(x)
+	}
+
 	fn max_diff(a: MatRef<'_, f64>, b: MatRef<'_, f64>) -> f64 {
 		let mut d: f64 = 0.0;
 		for j in 0..a.ncols() {
 			for i in 0..a.nrows() {
-				d = d.max((a[(i, j)] - b[(i, j)]).abs());
+				let (av, bv) = (a[(i, j)], b[(i, j)]);
+				let x = (av - bv).abs();
+				// A non-finite difference is accepted only between two equal infinities: `q`
+				// below holds `+inf` at (3, 31) on both routes. A NaN never passes, not even
+				// two NaNs of the same bits, whose difference is itself NaN.
+				assert!(x.is_finite() || (av == bv && av.is_infinite()), "{i},{j}: {av} and {bv} differ by {x}");
+				// `x` is finite here, or both entries are the same infinity and `x` is NaN,
+				// which `f64::max` drops.
+				d = d.max(x);
 			}
 		}
 		d
+	}
+
+	/// The exception in `max_diff` is for the `+inf` of the 32x32 QR fixture, not for NaNs: two
+	/// NaNs of the same bits have a NaN difference, which `f64::max` would drop.
+	#[test]
+	#[should_panic(expected = "differ by NaN")]
+	fn max_diff_rejects_a_nan_on_both_sides() {
+		let nan = Mat::<f64>::full(1, 1, f64::NAN);
+		max_diff(nan.as_ref(), nan.as_ref());
+	}
+
+	#[test]
+	fn max_diff_accepts_two_equal_infinities() {
+		let inf = Mat::<f64>::full(1, 1, f64::INFINITY);
+		assert_eq!(max_diff(inf.as_ref(), inf.as_ref()), 0.0);
+	}
+
+	/// Relative comparison for the families below: `max_diff(a, b)` within `1e-10` of the largest
+	/// finite magnitude of the reference `a` (at least 1). Non-finite entries stay out of the
+	/// scale: the `+inf` of the 32x32 QR fixture would make the bound infinite and let any finite
+	/// error through. `max_diff` still requires such entries to be the same infinity on both sides.
+	fn assert_within_tolerance(a: MatRef<'_, f64>, b: MatRef<'_, f64>, what: &str) {
+		let scale = (0..a.ncols()).flat_map(|j| (0..a.nrows()).map(move |i| (i, j))).fold(1.0f64, |m, (i, j)| {
+			let v = a[(i, j)].abs();
+			if v.is_finite() { m.max(v) } else { m }
+		});
+		let d = max_diff(a, b);
+		assert!(d <= 1e-10 * scale, "{what}: {d} against {scale}");
+	}
+
+	/// The 32x32 no-pivoting QR used by `small_qr_on_a_team_is_the_sequential_one`; its `q` holds
+	/// `+inf` at (3, 31).
+	fn small_qr(mut par: Par<'_>) -> (Mat<f64>, Mat<f64>) {
+		use crate::dyn_stack::{MemBuffer, MemStack};
+		use crate::linalg::qr::no_pivoting::factor as qrf;
+		let n = 32;
+		let bs = qrf::recommended_block_size::<f64>(n, n);
+		let mut a = rand_mat(n, n, 11);
+		let mut q = Mat::<f64>::zeros(bs, n);
+		let mut mem = MemBuffer::new(qrf::qr_in_place_scratch::<f64>(n, n, bs, par.shape(), Default::default()));
+		qrf::qr_in_place(a.as_mut(), q.as_mut(), par.reborrow(), MemStack::new(&mut mem), Default::default());
+		(a, q)
+	}
+
+	/// The 200x200 column pivoting QR of the families test: the factor `a` and the Householder
+	/// coefficients `h`, which hold an infinity sentinel.
+	fn col_piv_qr(par: Par<'_>) -> Vec<Mat<f64>> {
+		use crate::dyn_stack::{MemBuffer, MemStack};
+		use crate::linalg;
+		let n = 200;
+		let mut a = rand_mat(n, n, 13);
+		let bs = linalg::qr::no_pivoting::factor::recommended_block_size::<f64>(n, n);
+		let mut h = Mat::<f64>::zeros(bs, n);
+		let (mut q, mut qi) = (vec![0usize; n], vec![0usize; n]);
+		let req = linalg::qr::col_pivoting::factor::qr_in_place_scratch::<usize, f64>(n, n, bs, par.shape(), Default::default());
+		linalg::qr::col_pivoting::factor::qr_in_place(a.as_mut(), h.as_mut(), &mut q, &mut qi, par, MemStack::new(&mut MemBuffer::new(req)), Default::default());
+		vec![a, h]
+	}
+
+	/// The comparison the families test applies, on its own column pivoting QR: `h` holds an
+	/// infinity, and a copy whose (0, 0) is off by `1e6` must still be rejected.
+	#[test]
+	#[should_panic(expected = "against")]
+	fn tolerance_rejects_a_corrupted_col_pivoting_factor() {
+		let h = col_piv_qr(Par::Seq).pop().unwrap();
+		let infinite = (0..h.ncols()).flat_map(|j| (0..h.nrows()).map(move |i| (i, j))).any(|(i, j)| h[(i, j)].is_infinite());
+		assert!(infinite, "the fixture lost its sentinel");
+		assert!(h[(0, 0)].is_finite());
+		let mut off = h.clone();
+		off[(0, 0)] += 1e6;
+		assert_within_tolerance(h.as_ref(), off.as_ref(), "column pivoting h with (0, 0) off by 1e6");
+	}
+
+	/// An infinity in the reference must not widen the tolerance: the QR fixture's `q` against a
+	/// copy whose (0, 0) is off by `1e6` is rejected although (3, 31) is `+inf` on both sides.
+	#[test]
+	#[should_panic(expected = "against")]
+	fn tolerance_ignores_an_infinite_reference_entry() {
+		let (_, q) = small_qr(Par::Seq);
+		assert_eq!(q[(3, 31)], f64::INFINITY, "the fixture lost its sentinel");
+		let mut off = q.clone();
+		off[(0, 0)] += 1e6;
+		assert_within_tolerance(q.as_ref(), off.as_ref(), "q with (0, 0) off by 1e6");
+	}
+
+	/// The guard the manual comparisons rely on, which no `max_diff` test reaches: a NaN must not
+	/// fold into the running maximum.
+	#[test]
+	#[should_panic(expected = "non-finite difference")]
+	fn max_finite_rejects_a_nan() {
+		max_finite(0.0, f64::NAN);
 	}
 
 	/// A factorization too small to pay for a section asks the gates of a team token as the
@@ -875,18 +982,8 @@ mod tests {
 	/// products sequentially, instead of asking each product and each triangular step.
 	#[test]
 	fn small_qr_on_a_team_is_the_sequential_one() {
-		use crate::dyn_stack::{MemBuffer, MemStack};
-		use crate::linalg::qr::no_pivoting::factor as qrf;
 		let n = 32;
-		let a0 = rand_mat(n, n, 11);
-		let run = |mut par: Par<'_>| {
-			let bs = qrf::recommended_block_size::<f64>(n, n);
-			let mut a = a0.clone();
-			let mut q = Mat::<f64>::zeros(bs, n);
-			let mut mem = MemBuffer::new(qrf::qr_in_place_scratch::<f64>(n, n, bs, par.shape(), Default::default()));
-			qrf::qr_in_place(a.as_mut(), q.as_mut(), par.reborrow(), MemStack::new(&mut mem), Default::default());
-			(a, q)
-		};
+		let run = small_qr;
 		let (a_seq, q_seq) = run(Par::Seq);
 		let (a_team, q_team) = with_par(4, |par| {
 			stats::take();
@@ -899,6 +996,11 @@ mod tests {
 			assert_eq!(s.gemm_tiled + s.gemm_team_kernel, 0, "{s:?}");
 			r
 		});
+		// An exactly-zero difference is legitimate here because the team opened no section
+		// (`sections` and the GEMM counters above are zero), so both sides run the same
+		// one-participant partition. The `max_diff` form does not distinguish `+0.0` from
+		// `-0.0`; across thread counts only a tolerance is promised
+		// (`docs/reproducibility.md`).
 		assert_eq!(max_diff(a_seq.as_ref(), a_team.as_ref()), 0.0);
 		assert_eq!(max_diff(q_seq.as_ref(), q_team.as_ref()), 0.0);
 	}
@@ -1047,11 +1149,6 @@ mod tests {
 		let ns = StdDuration::from_nanos;
 		// cheap up to 4, prohibitive from 5 on
 		let row = [(2, ns(10)), (4, ns(10)), (5, StdDuration::from_secs(1))];
-		let tol = |a: MatRef<'_, f64>, b: MatRef<'_, f64>, what: &str| {
-			let scale = (0..a.ncols()).flat_map(|j| (0..a.nrows()).map(move |i| (i, j))).fold(1.0f64, |m, (i, j)| m.max(a[(i, j)].abs()));
-			let d = max_diff(a, b);
-			assert!(d <= 1e-10 * scale, "{what}: {d} against {scale}");
-		};
 		type Run = fn(Par<'_>) -> Vec<Mat<f64>>;
 		let families: [(&str, Run); 14] = [
 			("full pivoting lu", |par| {
@@ -1070,16 +1167,7 @@ mod tests {
 				linalg::lu::partial_pivoting::factor::lu_in_place(a.as_mut(), &mut p, &mut pi, par, MemStack::new(&mut MemBuffer::new(req)), Default::default());
 				vec![a]
 			}),
-			("column pivoting qr", |par| {
-				let n = 200;
-				let mut a = rand_mat(n, n, 13);
-				let bs = linalg::qr::no_pivoting::factor::recommended_block_size::<f64>(n, n);
-				let mut h = Mat::<f64>::zeros(bs, n);
-				let (mut q, mut qi) = (vec![0usize; n], vec![0usize; n]);
-				let req = linalg::qr::col_pivoting::factor::qr_in_place_scratch::<usize, f64>(n, n, bs, par.shape(), Default::default());
-				linalg::qr::col_pivoting::factor::qr_in_place(a.as_mut(), h.as_mut(), &mut q, &mut qi, par, MemStack::new(&mut MemBuffer::new(req)), Default::default());
-				vec![a, h]
-			}),
+			("column pivoting qr", col_piv_qr),
 			("hessenberg", |par| {
 				let n = 160;
 				let mut a = rand_mat(n, n, 14);
@@ -1207,7 +1295,7 @@ mod tests {
 			assert!(s.split[4] + s.run[4] > 0, "{name}: no split or section of 4 ({s:?})");
 			assert!(s.split.iter().skip(5).all(|&c| c == 0), "{name}: a split wider than 4 ({s:?})");
 			for (k, (a, b)) in want.iter().zip(got.iter()).enumerate() {
-				tol(a.as_ref(), b.as_ref(), &alloc::format!("{name} output {k}"));
+				assert_within_tolerance(a.as_ref(), b.as_ref(), &alloc::format!("{name} output {k}"));
 			}
 		}
 	}
@@ -1415,7 +1503,7 @@ mod tests {
 			let mut d: f64 = 0.0;
 			for j in 0..n {
 				for i in 0..m {
-					d = d.max((want[(i, j)] - got[(i, j)]).norm_sqr().sqrt());
+					d = max_finite(d, (want[(i, j)] - got[(i, j)]).norm_sqr().sqrt());
 				}
 			}
 			assert!(d < 1e-9);
@@ -1690,7 +1778,7 @@ mod tests {
 				let mut d: f64 = 0.0;
 				for j in 0..n {
 					for i in j..n {
-						d = d.max((want[(i, j)] - got[(i, j)]).abs());
+						d = max_finite(d, (want[(i, j)] - got[(i, j)]).abs());
 					}
 				}
 				assert!(d < 1e-8, "cholesky n = {n}: {d}");
@@ -1857,6 +1945,8 @@ mod tests {
 				matmul(got.as_mut(), Accum::Replace, a.as_ref(), b.as_ref(), 1.0, par);
 				let st = stats::take();
 				stats::enable(false);
+				// A team of one participant is the sequential partition, so an exactly-zero
+				// difference here is not a cross-thread-count claim (`docs/reproducibility.md`).
 				assert_eq!(max_diff(want.as_ref(), got.as_ref()), 0.0);
 				assert_eq!(st.gemm_team_kernel + st.gemm_tiled, 0, "{st:?}");
 			})
@@ -1889,7 +1979,7 @@ mod tests {
 			for j in 0..n {
 				for i in 0..n {
 					if (lo && i >= j) || (!lo && i <= j) {
-						d = d.max((m[(i, j)] - w[(i, j)]).abs());
+						d = max_finite(d, (m[(i, j)] - w[(i, j)]).abs());
 					}
 				}
 			}
@@ -1952,7 +2042,7 @@ mod tests {
 		let mut d: f64 = 0.0;
 		for j in 0..n {
 			for i in 0..n {
-				d = d.max((want[(i, j)] - got[(i, j)]).norm());
+				d = max_finite(d, (want[(i, j)] - got[(i, j)]).norm());
 			}
 		}
 		assert!(d < 1e-9, "{d}");
@@ -1981,7 +2071,7 @@ mod tests {
 		let mut d: f64 = 0.0;
 		for j in 0..n {
 			for i in j..n {
-				d = d.max((want[(i, j)] - got[(i, j)]).abs());
+				d = max_finite(d, (want[(i, j)] - got[(i, j)]).abs());
 			}
 		}
 		assert!(d < 1e-9, "{d}");
@@ -2038,7 +2128,7 @@ mod tests {
 							acc, alpha, conj, conj,
 						);
 					}
-					let d = want.iter().zip(&got).map(|(&w, &g)| err(w, g)).fold(0.0, f64::max);
+					let d = want.iter().zip(&got).map(|(&w, &g)| err(w, g)).fold(0.0, max_finite);
 					assert!(d < 1e-3, "read_dst {read_dst} conj {conj}: {d}");
 				}
 			}
@@ -2163,7 +2253,7 @@ mod tests {
 				let mut d = 0.0f64;
 				for j in 0..n {
 					for i in 0..m {
-						d = d.max(err(want[(i, j)], got[(i, j)]));
+						d = max_finite(d, err(want[(i, j)], got[(i, j)]));
 					}
 				}
 				assert!(d < 1e-3, "{beta:?}: {d}");
@@ -2196,7 +2286,7 @@ mod tests {
 			for j in 0..n {
 				for i in 0..n {
 					if (lower && i >= j) || (!lower && i <= j) {
-						d = d.max((x[(i, j)] - y[(i, j)]).abs());
+						d = max_finite(d, (x[(i, j)] - y[(i, j)]).abs());
 					}
 				}
 			}
@@ -2258,7 +2348,7 @@ mod tests {
 			let mut d: f64 = 0.0;
 			for j in 0..n {
 				for i in j..n {
-					d = d.max((x[(i, j)] - y[(i, j)]).abs());
+					d = max_finite(d, (x[(i, j)] - y[(i, j)]).abs());
 				}
 			}
 			d
