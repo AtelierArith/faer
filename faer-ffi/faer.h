@@ -92,10 +92,12 @@ typedef struct FaerV0_24_Scalar FaerV0_24_Scalar;
 /**
  * A handle to a team: the ownership of the participants of a parallel region.
  *
- * The handle is opaque and borrowed by every operation; it carries no scoped team token, because
- * C cannot express the scope a token is valid for. The Rust side enters the team for the duration
- * of one call and leaves it before the call returns (see [`with_team_par`]), so the team is never
- * held across a C frame. `NULL` stands for "no team", which runs the operation sequentially.
+ * The handle owns one [`threadteam::Pool`] of its width, built by
+ * [`libfaer_v0_23_team_create`]. Every operation borrows it for the duration of one call: the pool
+ * becomes a team, the operation runs inside it, and the pool comes back out before the call
+ * returns (see `Team::with_par`). No team token is carried, because C cannot express the scope
+ * one is valid for, so a team is never held across a C frame and the calling thread is never inside
+ * a team between calls. `NULL` stands for "no team", which runs the operation sequentially.
  */
 typedef struct FaerV0_24_Team FaerV0_24_Team;
 
@@ -6318,19 +6320,46 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
 
 /**
  * Creates a team handle of `threads` participants: the calling thread and `threads - 1` reserved
- * workers, the same convention as `faer::team::with_team`. Zero and one both mean sequential.
+ * workers, the same convention as `faer::team::with_team`. Zero and one both mean sequential, and a
+ * sequential handle reserves nothing.
  *
- * The handle owns nothing else: it records the width, and every operation handed the handle
- * reserves a team of that width for the duration of that one call. Handles are not tied to a
- * thread. An operation must not overlap another one that writes the same elements; the handle
- * itself may be shared for reading, but [`libfaer_v0_23_team_set_threads`] and
- * [`libfaer_v0_23_team_destroy`] need exclusive access to it, so no operation may be running on
- * the handle when they are called.
+ * The handle **owns its pool**: the workers are built here, once, and every operation handed the
+ * handle borrows them for the duration of that one call (see `Team::with_par`) and hands them
+ * back before returning. A handle reused for N calls builds one pool, not N. The threads exist from
+ * here until [`libfaer_v0_23_team_destroy`]; if the host cannot provide them, this function panics
+ * inside the pool build, and a panic crossing this `extern "C"` boundary aborts the process. A
+ * handle is a promise that the threads exist, and the operations return no status that could carry
+ * an acquisition error.
  *
- * Each operation reserves its team when it starts. If the host cannot provide those threads the
- * Rust side panics inside `with_team`, and a panic crossing this `extern "C"` boundary aborts the
- * process: a handle is a promise that the threads exist, and the operations return no status that
- * could carry an acquisition error.
+ * The rules the ownership brings, in full:
+ *
+ * * **Two threads, one handle.** An operation may be called on one handle from two threads at once
+ *   as long as they write different elements. They do not run at once: the pool is a single object
+ *   that one call holds for its duration, so the second waits for the first to hand it back. A
+ *   caller that wants its own threads to be parallel wants a handle per thread.
+ * * **A callback must not nest a parallel call.** An operation called from inside another operation
+ *   on the same thread (the `SchurParams` callbacks, for one) runs sequentially: it gets no team,
+ *   where waiting for the pool its caller holds would never end. It is correct, just not parallel.
+ *   Such a call takes no lock, so the turn-taking above does not order it against another thread
+ *   using the same handle: a nested call runs whenever it is made.
+ * * **[`libfaer_v0_23_team_set_threads`] and [`libfaer_v0_23_team_destroy`] are exclusive**: no
+ *   operation may be running on the handle, on any thread, while they are called.
+ * * **After `destroy` the handle is gone.** Any later operation, `set_threads` or second `destroy`
+ *   on that pointer is a use after free: the C caller owns the pointer and nothing can detect it,
+ *   so invalidate your copy where you free it. `destroy(NULL)` is accepted and ignored.
+ * * **After `fork`, a child uses only handles it creates itself.** A handle created before the
+ *   fork names worker threads that do not exist in the child: an operation on it there can wait for
+ *   them forever, and `destroy` there would join threads of another process, so the child must
+ *   neither use nor destroy it. A handle the child creates starts its own workers, which are
+ *   dedicated to it and never pass through threadteam's process-wide cache, so it works whether the
+ *   parent's handles were destroyed before the fork or are still alive at it. The usual limits of
+ *   forking a multithreaded process still apply to everything else (a lock another parent thread
+ *   held at the fork stays held in the child), so `exec` remains the safe shape for a child that
+ *   does more than this. Whether `create` should record the creator's pid and refuse an inherited
+ *   handle is **undecided**, and nothing checks it today.
+ *
+ * The handle's contents are not the caller's to write: it is opaque and must be created and
+ * released by these three functions only.
  *
  * ```c
  * #include "faer.h"
@@ -6351,19 +6380,25 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
 struct FaerV0_24_Team *libfaer_v0_23_team_create(size_t threads);
 
 /**
- * Releases a handle from [`libfaer_v0_23_team_create`]; `NULL` is accepted and ignored.
+ * Releases a handle from [`libfaer_v0_23_team_create`] and the pool it owns; `NULL` is accepted and
+ * ignored.
  *
  * The handle is destroyed exactly once, and only while no operation that was handed it is still
- * running.
+ * running. Dropping the pool ends its workers: they are dedicated to this handle (not threadteam's
+ * process-wide cache of shared workers), so when `destroy` returns every worker thread of the
+ * handle has been joined.
  */
 void libfaer_v0_23_team_destroy(struct FaerV0_24_Team *team);
 
 /**
  * Resets the width of an existing handle, so a caller changes its thread count without rebuilding
- * it. Zero and one both mean sequential. Needs exclusive access to the handle: no operation that
- * was handed it may be running, and no other call may be setting it.
+ * it. Zero and one both mean sequential, and a sequential handle releases its pool; widening it
+ * again builds a new one. Needs exclusive access to the handle: no operation that was handed it may
+ * be running, and no other call may be setting it.
  *
- * The width is read once, when an operation reserves its team, so a workspace query
+ * Resizing is a reconfiguration, not a per-call cost: the pool is rebuilt here.
+ *
+ * The width is read once, when an operation takes the pool, so a workspace query
  * (`*_scratch`) made before the change no longer describes an operation of the new width: some
  * sizes depend on the number of participants (full-pivot LU sizes one pivot candidate per
  * participant), so query the scratch again after setting the width.
