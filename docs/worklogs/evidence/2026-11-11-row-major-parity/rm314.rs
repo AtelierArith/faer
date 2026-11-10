@@ -12,9 +12,12 @@
 //!   taskset -c 0-7 target/release/examples/rm314 alloc <alloc.csv> 8
 //!   rm faer/examples/rm314.rs
 //!
-//! The GEVD 2048 pairs in the evidence were measured by reducing `FAMILIES` to `["gevd"]` in
-//! this file (a one-line edit) so that the other 138 cells were not re-run; a pass with the file
-//! as shipped covers all 148 cells per thread count and takes about 20 minutes at one thread.
+//! The GEVD 2048 pairs in the evidence were measured by a GEVD-only run: replace the declaration
+//! below (length included -- `["gevd"]` under `[&str; 12]` does not compile) with
+//! `const FAMILIES: [&str; 1] = ["gevd"];`, so that the other 138 cells are not re-run; a pass with
+//! the file as shipped covers all 148 cells per thread count and takes about 20 minutes at one
+//! thread. The allocation tables come from full-family `alloc` runs, and the GEVD 32-512 timing
+//! cells from the full timing pass.
 //!
 //! Every matrix of a cell -- the input, the coefficients, the eigenvector and
 //! singular-vector outputs -- is allocated in the cell's layout, so a
