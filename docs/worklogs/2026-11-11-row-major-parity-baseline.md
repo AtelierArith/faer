@@ -67,8 +67,9 @@ Raw samples, the summary and the harness are in
   cells the two eight-thread passes share, 7 read above 1.5x the reported median, and the largest
   is `lu_partial` at `4096x256` row-major, 7.088 ms against 2.269 ms (ratio 3.12). The next are the
   same shape column-major, 4.835 ms against 1.808 ms (2.67), `lu_full` 512 column-major 14.456 ms
-  against 6.998 ms (2.07), `lu_partial` 2048 column-major 28.850 ms against 15.383 ms (1.88) and
-  `lu_full` 2048 column-major 323.5 ms against 178.2 ms (1.82). The second passes ran at a load
+  against 6.998 ms (2.07), `lu_partial` 2048 column-major 28.850 ms against 15.383 ms (1.88),
+  `lu_full` 512 row-major 12.968 ms against 6.958 ms (1.86), `lu_partial` 2048 row-major 45.180 ms
+  against 24.570 ms (1.84) and `lu_full` 2048 column-major 323.5 ms against 178.2 ms (1.82). The second passes ran at a load
   average below 0.5 with no competing build and left 2 cells (eight threads) and 3 cells (one
   thread) above 1.5x, all at `n = 32`, where the first sample after the warm-up is the slow one. No
   number in this record comes from the first passes; they are kept as
