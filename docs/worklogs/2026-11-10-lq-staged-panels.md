@@ -65,6 +65,19 @@
   last column is the same run's column-major QR of the explicit `A^T` (same flops), the cost the
   LQ would have with no layout penalty at all.
 
+  **Not reproducible from this tree.** The "before" column needs the unstaged kernel on the
+  transposed view, and the probe that entered it was a `#[doc(hidden)]` hook kept on the
+  measuring machine and deliberately not committed. Nothing in this repository can therefore
+  re-run that column: the ratios above are a record of one paired run, not a measurement a
+  reader can repeat. The "after" side is reachable — `lq_in_place` passes `staged = true`
+  (`lq/no_pivoting/factor.rs:57`), and `cargo test -p t4a-faer lq` covers the shapes — but whether a
+  given call actually stages is decided further in: `qr/no_pivoting/factor.rs:160-166` stages only
+  when the row stride is not 1 and the stack can hold the two panel buffers, and `:193` narrows it
+  again when it cannot. So a reader can check that the staged code runs for a call that meets those
+  conditions, not that every call does, and not that it costs 3.74 ms — the numbers came from the
+  in-process probe described above, whose harness is not committed. A claim of the form "0.254x" is
+  therefore only checkable against a baseline this repository does not contain.
+
   | LQ `m x n` | t | before | after | after / before | column-major QR of `A^T` | after / QR |
   |---|---|---|---|---|---|---|
   | `512 x 512` | 1 | 14.72 | 3.74 | 0.254 | 3.24 | 1.153 |
