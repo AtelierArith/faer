@@ -321,7 +321,7 @@ mod tests {
 		let v0 = v0.as_ref();
 		let par = Par::Seq;
 		let mem = &mut MemBuffer::new(
-			crate::matrix_free::eigen::partial_eigen_scratch(
+			crate::matrix_free::eigen::partial_self_adjoint_eigen_scratch(
 				&A,
 				n_eigval,
 				par.shape(),

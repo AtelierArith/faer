@@ -81,7 +81,17 @@ macro_rules! suite {
 						)
 						.unwrap();
 					assert_eq!(eig.values().len(), n);
-					assert_eq!(eig.values(), &values[..]);
+					// two routes, not one: with vectors a block above the
+					// divide-and-conquer leaf takes its eigenvalues from the
+					// secular equation, values only always iterates QR, so the
+					// last bits may differ (tensor4all/faer#354)
+					for (got, want) in eig.values().iter().zip(&values) {
+						let (got, want) = (real(got.clone()), want.clone());
+						assert!(
+							(got - want).abs() < 1e-12 * (1.0 + want.abs()),
+							"n={n}: {got:?} vs {want:?}"
+						);
+					}
 					for j in 0..n {
 						assert!(real(eig.values()[j]).is_finite());
 						if j > 0 {

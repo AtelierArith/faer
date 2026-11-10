@@ -88,7 +88,22 @@ impl<T: ComplexField> Auto<T> for SelfAdjointEvdParams {
 	fn auto() -> Self {
 		Self {
 			tridiag: auto!(T),
-			recursion_threshold: 128,
+			// The divide-and-conquer leaf: a block of at most this size is solved by QR iteration,
+			// which applies every rotation to the eigenvector columns as it goes and is serial.
+			// At 128 every matrix up to n = 128 never left QR iteration (80% of an f64 n = 128
+			// call, 1T) and gained nothing from threads. Scan, f64 c order, time against 128
+			// (tensor4all/faer#354, worklog 2026-11-10-eigh-dc-leaf):
+			//
+			//   leaf   n=32   64     96     128    256    512    1024
+			//   1T  16 1.10  1.03   0.94   0.88   0.96   0.99   1.00
+			//       32 1.00  0.96   0.89   0.86   0.94   0.98   0.99
+			//       64 1.00  1.00   0.87   0.89   0.94   0.97   0.99
+			//   8T  16 0.95  0.81   0.69   0.65   0.87   0.97   1.00
+			//       32 1.00  0.80   0.69   0.65   0.87   0.98   1.00
+			//       64 1.00  1.00   0.70   0.70   0.90   0.97   1.00
+			//
+			// 32 is the smallest leaf with no loss at n = 32 at 1T; c64 and 4T order the same way.
+			recursion_threshold: 32,
 			non_exhaustive: NonExhaustive(()),
 		}
 	}
