@@ -21,7 +21,9 @@
 use faer::diag::Diag;
 use faer::dyn_stack::{MemBuffer, MemStack};
 use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{GevdError, GevdParams, gevd_real, gevd_scratch};
+use faer::linalg::gevd::{
+	GevdError, GevdParams, gevd_cplx, gevd_real, gevd_scratch,
+};
 use faer::{Mat, Par, ParShape, Spec, c64};
 
 /// A fixed pseudo-random value in `[-1, 1)`.
@@ -898,5 +900,185 @@ fn scan_scaled_pencil() {
 				println!("  1e{k}: finite = {finite}, diff = {m:e}");
 			}
 		}
+	}
+}
+
+/// `gevd_cplx` (left + right) on `(s A, s B)` taken as a complex pencil, in the
+/// same form as `gevd`: the eigenvectors are already complex columns.
+fn gevd_c64(
+	a: &Mat<f64>,
+	b: &Mat<f64>,
+	s: f64,
+) -> Result<(Gevd, Mat<c64>, Mat<c64>), GevdError> {
+	let n = a.nrows();
+	let mut a = Mat::<c64>::from_fn(n, n, |i, j| c64::new(s * a[(i, j)], 0.0));
+	let mut b = Mat::<c64>::from_fn(n, n, |i, j| c64::new(s * b[(i, j)], 0.0));
+	let mut alpha = Diag::<c64>::zeros(n);
+	let mut beta = Diag::<c64>::zeros(n);
+	let mut u_left = Mat::<c64>::zeros(n, n);
+	let mut u_right = Mat::<c64>::zeros(n, n);
+	let mut mem = MemBuffer::new(gevd_scratch::<c64>(
+		n,
+		ComputeEigenvectors::Yes,
+		ComputeEigenvectors::Yes,
+		ParShape::Seq,
+		Spec::<GevdParams, c64>::default(),
+	));
+	gevd_cplx(
+		a.as_mut(),
+		b.as_mut(),
+		alpha.as_mut(),
+		beta.as_mut(),
+		Some(u_left.as_mut()),
+		Some(u_right.as_mut()),
+		Par::Seq,
+		MemStack::new(&mut mem),
+		Spec::<GevdParams, c64>::default(),
+	)?;
+	// `alpha / beta` with both scaled by `max(|alpha|, |beta|)` first: the
+	// plain complex quotient squares `|beta|`, which overflows at `s = 1e154`
+	// (the defect of tensor4all/faer#370, in the oracle instead of the code)
+	let lambda: Vec<c64> = (0..n)
+		.map(|j| {
+			let (x, y) = (alpha.column_vector()[j], beta.column_vector()[j]);
+			let m = x.norm().max(y.norm());
+			(x / m) / (y / m)
+		})
+		.collect();
+	Ok((
+		Gevd {
+			lambda,
+			left: u_left.clone(),
+			right: u_right.clone(),
+		},
+		u_left,
+		u_right,
+	))
+}
+
+/// The scales tensor4all/faer#370 names: the two ends of the old range
+/// (`1e-146`, `1e154`), one step outside each (`1e-150`, `1e160`), and the
+/// control `s = 1`. With `faer/src/linalg/gevd/mod.rs` from before
+/// tensor4all/faer#374 (`7167896`), `gevd_real` returned `Ok` with NaN left and
+/// right eigenvectors for `two_pairs` at `1e154` and `1e160` (16 NaN entries
+/// each) and for `repeated_pair` at `1e-150` and `1e160` (20 each);
+/// `one_pair`, whose pair meets only 1 by 1 blocks, was finite at all five.
+/// `gevd_cplx` passed at all five before and after.
+const ISSUE_SCALES: [f64; 5] = [1e-150, 1e-146, 1.0, 1e154, 1e160];
+
+fn nan_count<T: Copy>(m: &Mat<T>, is_nan: impl Fn(T) -> bool) -> usize {
+	(0..m.nrows())
+		.map(|i| (0..m.ncols()).filter(|&j| is_nan(m[(i, j)])).count())
+		.sum()
+}
+
+/// Runs every pencil at every entry of `scales` through `run`, prints one
+/// row per case (finite, NaN count of left + right, differences against
+/// `s = 1`), and only then asserts, so a failing run still prints the whole
+/// table.
+fn check_issue_scales<U>(
+	kind: &str,
+	scales: &[f64],
+	run: impl Fn(&Mat<f64>, &Mat<f64>, f64) -> Result<(Gevd, U, U), GevdError>,
+	nans: impl Fn(&U) -> usize,
+) {
+	let mut failures = Vec::new();
+	println!(
+		"{kind}: pencil, s, finite, NaN entries, eigenvalue, left sin, right sin"
+	);
+	for (name, make) in PENCILS {
+		let (a, b) = make();
+		let (reference, ..) = run(&a, &b, 1.0).unwrap();
+		for &s in scales {
+			let row = match run(&a, &b, s) {
+				Err(e) => {
+					failures.push(format!("{name}, s = {s:e}: {e:?}"));
+					format!("{name}, {s:e}, Err({e:?})")
+				},
+				Ok((scaled, ul, ur)) => {
+					let nan = nans(&ul) + nans(&ur);
+					let d = compare(&reference, &scaled);
+					let finite = nan == 0
+						&& scaled.left.is_all_finite()
+						&& scaled.right.is_all_finite();
+					if !(finite
+						&& d.lambda <= TOL && d.left <= TOL && d.right <= TOL)
+					{
+						failures.push(format!(
+							"{name}, s = {s:e}: finite = {finite}, NaN = {nan}, \
+							 eigenvalue {:e}, left sin {:e}, right sin {:e} \
+							 (tolerance {TOL:e})",
+							d.lambda, d.left, d.right
+						));
+					}
+					format!(
+						"{name}, {s:e}, {finite}, {nan}, {:e}, {:e}, {:e}",
+						d.lambda, d.left, d.right
+					)
+				},
+			};
+			println!("{kind}: {row}");
+		}
+	}
+	assert!(failures.is_empty(), "{kind}:\n{}", failures.join("\n"));
+}
+
+/// tensor4all/faer#370 at the issue's scales, `f64` (`gevd_real`): the complex
+/// pairs' eigenvectors go through `solve_complex_shifted_2x2`, the path #374
+/// changed.
+#[test]
+fn issue_scales_f64() {
+	check_issue_scales("f64", &ISSUE_SCALES, gevd, |u: &Mat<f64>| {
+		nan_count(u, f64::is_nan)
+	});
+}
+
+/// tensor4all/faer#370 at the issue's scales, `c64` (`gevd_cplx` on the same
+/// real pencils): its back substitution does not use the real 2 by 2 solve, and
+/// this asserts what #374 only measured.
+#[test]
+fn issue_scales_c64() {
+	check_issue_scales("c64", &ISSUE_SCALES, gevd_c64, |u: &Mat<c64>| {
+		nan_count(u, |z: c64| z.re.is_nan() || z.im.is_nan())
+	});
+}
+
+/// The ends of the range the `gevd_real` and `gevd_cplx` rustdoc guarantees
+/// (every entry of `(s A, s B)` normal and finite): `1e-305`, the smallest
+/// power of ten at which all three pencils are normal, and `1e307`, the
+/// largest at which none overflows.
+const RANGE_ENDS: [f64; 2] = [1e-305, 1e307];
+
+/// Past the upper end the entries overflow to infinity and both functions
+/// return `Err(NoConvergence)`, the documented outcome, never `Ok`.
+const OVERFLOWING: f64 = 1e308;
+
+#[test]
+fn documented_range_ends_f64() {
+	check_issue_scales("f64", &RANGE_ENDS, gevd, |u: &Mat<f64>| {
+		nan_count(u, f64::is_nan)
+	});
+	for (name, make) in PENCILS {
+		let (a, b) = make();
+		let r = gevd(&a, &b, OVERFLOWING);
+		assert!(
+			matches!(r, Err(GevdError::NoConvergence)),
+			"f64 {name}, s = {OVERFLOWING:e}: expected Err(NoConvergence), got Ok"
+		);
+	}
+}
+
+#[test]
+fn documented_range_ends_c64() {
+	check_issue_scales("c64", &RANGE_ENDS, gevd_c64, |u: &Mat<c64>| {
+		nan_count(u, |z: c64| z.re.is_nan() || z.im.is_nan())
+	});
+	for (name, make) in PENCILS {
+		let (a, b) = make();
+		let r = gevd_c64(&a, &b, OVERFLOWING);
+		assert!(
+			matches!(r, Err(GevdError::NoConvergence)),
+			"c64 {name}, s = {OVERFLOWING:e}: expected Err(NoConvergence), got Ok"
+		);
 	}
 }
