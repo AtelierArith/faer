@@ -38,7 +38,11 @@ Raw samples, the summary and the harness are in
   re-read the 512 cells too: the column-major median was 419.8 ms against 384.5 ms in the main
   pass (9.2% of the reported value, `|a - b| / b`) and the ratio 2.69 against 2.86 (5.9% of the
   reported ratio) -- the largest process-to-process variation in this record, so a GEVD cell
-  carries about that much between processes.
+  carries about that much between processes. Those two numbers are quoted from the dedicated run's
+  own printout; its five samples were not kept, so they cannot be recomputed from the evidence
+  files, which hold the main-pass `gevd` 512 cells (384.498 ms column-major, ratio 2.861) and the
+  dedicated run's 2048 rows only. Every table in this record can be re-derived from
+  `evidence/2026-11-11-row-major-parity/`; this prose pair is the one reading that cannot.
 - **Threads**: `Par::Seq` (one participant) and `faer::team::with_team(8, ...)` (eight
   participants: the calling thread and seven team members). Nothing above eight.
 - **Five repetitions, median reported.** There are 148 cells per thread count (74 family-and-shape
@@ -59,24 +63,33 @@ Raw samples, the summary and the harness are in
   first.
 - **Two passes per thread count, the second is reported.** The first eight-thread pass overlapped
   a competing `cargo` build pinned to CPU 27 (load average 11 at its start) and left 12 cells with
-  a >1.5x spread among their five samples, with medians up to 1.8x slower than the second pass on
-  the LU cells (eight-thread `lu_partial` 2048: median 28.9 ms against 15.4 ms; `lu_full` 2048:
-  323 ms against 178 ms). The second passes ran at a load average below 0.5 with no competing build
-  and left 2 cells (eight threads) and 3 cells (one thread) above 1.5x, all at `n = 32`, where the
-  first sample after the warm-up is the slow one. No number in this record comes from the first
-  passes; they are kept as `314-f64-time-1T-first-pass.csv` and `314-f64-time-8T-first-pass.csv`
-  for audit. Relative differences in this record are `|a - b| / b` against the reported value
-  `b`: over the 146 cells the two one-thread passes share, the largest is a factor 1.062
-  (`evd_vals` at `n = 32`: 50.688 us in the first pass, 47.709 us reported -- 6.24% of the
-  reported value, and 5.88% if the first pass is the denominator instead).
+  a >1.5x spread among their five samples, with medians up to 3.1x the reported ones: over the 146
+  cells the two eight-thread passes share, 7 read above 1.5x the reported median, and the largest
+  is `lu_partial` at `4096x256` row-major, 7.088 ms against 2.269 ms (ratio 3.12). The next are the
+  same shape column-major, 4.835 ms against 1.808 ms (2.67), `lu_full` 512 column-major 14.456 ms
+  against 6.998 ms (2.07), `lu_partial` 2048 column-major 28.850 ms against 15.383 ms (1.88),
+  `lu_full` 512 row-major 12.968 ms against 6.958 ms (1.86), `lu_partial` 2048 row-major 45.180 ms
+  against 24.570 ms (1.84) and `lu_full` 2048 column-major 323.5 ms against 178.2 ms (1.82). The second passes ran at a load
+  average below 0.5 with no competing build and left 2 cells (eight threads) and 3 cells (one
+  thread) above 1.5x, all at `n = 32`, where the first sample after the warm-up is the slow one. No
+  number in this record comes from the first passes; they are kept as
+  `314-f64-time-1T-first-pass.csv` and `314-f64-time-8T-first-pass.csv` for audit. Those two files
+  hold per-repetition timings only -- no timestamps, no load averages, no affinity data -- so the
+  claim they can be checked against is the spread quoted above, not the load figures: those come
+  from the shell session that ran the passes and are not in the record.
+- **A ratio and a relative difference are different numbers, and this record says which it
+  gives.** A ratio is `a / b`; a relative difference is `|a - b| / b`. The two one-thread passes
+  agree to a worst ratio of 1.062 over the 146 cells they share (`evd_vals` at `n = 32`: 50.688 us
+  in the first pass against 47.709 us reported, i.e. 6.24% above the reported value, `|a - b| / b`
+  = 0.062; 5.88% if the first pass is the denominator instead).
 - **Pinned to CPUs 0-7** with `taskset`, which is one L3 domain on this host (`0-7,16-23`), with
   the SMT siblings of those cores left out of the mask. The observing side was **not** pinned
   outside that domain, which the benchmark rule asks for: the shell and the harness's own output
   run wherever the scheduler puts them, and `kache-engine` idles at about 16% of one core on an
-  unpinned CPU. The two one-thread passes agree to within that factor 1.062 on the 146 cells they
-  share, which is the repeatability of the grid, not a bound on a systematic observer effect (two
-  runs with the same unpinned observer can share the same bias). These numbers are not a
-  pinned-observer-compliant baseline; see Limits.
+  unpinned CPU. The two one-thread passes agree to a worst ratio of 1.062 (6.2% apart) on the 146
+  cells they share, which is the repeatability of the grid, not a bound on a systematic observer
+  effect (two runs with the same unpinned observer can share the same bias). These numbers are not
+  a pinned-observer-compliant baseline; see Limits.
 
 ## The host
 
@@ -434,9 +447,11 @@ and no profile below the call level was taken.
   teams and the second L3 domain are not measured.
 - The GEVD 2048 pairs come from the dedicated run described in Decisions, and the GEVD family is
   the least reproducible one here: its 512 cell read 419.8 ms against 384.5 ms and a ratio of 2.69
-  against 2.86 between the two runs (see Decisions).
+  against 2.86 between the two runs (see Decisions). That run kept its 2048 rows and discarded its
+  512 samples, so its 512 reading is the one number in this record that a reader cannot re-derive
+  from the evidence files.
 - The observing side was not pinned outside the measured L3 domain (see Decisions). Two passes
-  agreeing to within a factor 1.062 (`|a - b| / b`, 146 shared cells) show repeatability, not the
+  whose worst ratio is 1.062 (`|a - b| / b` = 0.062, 146 shared cells) show repeatability, not the
   size of a systematic observer effect, so this is not a compliant baseline.
 - The `LBL^T` fixture is symmetric positive definite: a diagonal sign flip is a congruence, so it
   stays positive definite and Bunch-Kaufman takes no 2x2 pivots. Those cells measure the layout
@@ -469,8 +484,14 @@ no timed repetitions, so it prints nothing per cell.
 
 A pass as the harness ships covers all 148 cells per thread count; a full one-thread pass takes
 about 20 minutes, most of it the two GEVD 2048 cells (25 s and 124 s per call). The GEVD 2048 rows
-in the evidence were taken with `FAMILIES` reduced to `["gevd"]` in that file -- a one-line edit --
-so that the other 138 cells were not re-run (the GEVD-only run covers 10 cells per thread count).
+in the evidence were taken from a GEVD-only run, so that the other 138 cells were not re-run (that
+run covers 10 cells per thread count). To get it, replace the whole `const FAMILIES` declaration,
+length included -- shortening the array without changing `[&str; 12]` does not compile:
+
+```
+const FAMILIES: [&str; 12] = [ ... the twelve names ... ];   // as shipped
+const FAMILIES: [&str; 1] = ["gevd"];                        // GEVD-only run
+```
 
 The summary CSV is the table in machine-readable form: one row per cell and layout with
 `reps, median_us, min_us, max_us` and the allocation columns, plus one `row/col` row per cell.
