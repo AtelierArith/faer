@@ -231,6 +231,15 @@ fn secular_eq<T: RealField>(
 	z: ColRef<'_, T, usize, ContiguousFwd>,
 	rho_recip: T,
 ) -> T {
+	if const { T::IS_NATIVE_F64 } && d.nrows() >= SECULAR_SIMD_MIN {
+		// SAFETY: `T` is `f64`, checked above; both columns are contiguous
+		let (d, z) = unsafe { as_f64_slices(d, z) };
+		let shift: f64 = unsafe { core::mem::transmute_copy(shift) };
+		let mu: f64 = unsafe { core::mem::transmute_copy(mu) };
+		let rho_recip: f64 = unsafe { core::mem::transmute_copy(&rho_recip) };
+		let [res] = secular_sum_f64::<1>(d, z, [shift], [mu]);
+		return unsafe { core::mem::transmute_copy(&(rho_recip + res)) };
+	}
 	with_dim!(n, d.nrows());
 	let d = d.as_row_shape(n);
 	let z = z.as_row_shape(n);
@@ -242,6 +251,77 @@ fn secular_eq<T: RealField>(
 	}
 	res
 }
+/// below this length the secular sum stays scalar: the dispatch costs more than the lanes save
+const SECULAR_SIMD_MIN: usize = 16;
+/// lanes per accumulator of the vectorised secular sum (one 512-bit register of `f64`)
+const SECULAR_LANES: usize = 8;
+/// # Safety
+/// `T` must be `f64`
+#[inline(always)]
+unsafe fn as_f64_slices<'a, T: RealField>(
+	d: ColRef<'a, T, usize, ContiguousFwd>,
+	z: ColRef<'a, T, usize, ContiguousFwd>,
+) -> (&'a [f64], &'a [f64]) {
+	let n = d.nrows();
+	(
+		core::slice::from_raw_parts(d.as_ptr() as *const f64, n),
+		core::slice::from_raw_parts(z.as_ptr() as *const f64, n),
+	)
+}
+/// `sum_i z_i * (z_i / ((d_i - shift[q]) - mu[q]))` for each of the `N` points `q`.
+///
+/// Each term is rounded exactly as the scalar loop rounds it; only the order of the additions
+/// differs (`SECULAR_LANES` partial sums per point, then the lanes, then the tail). The body runs
+/// under the CPU's widest SIMD target features, where the lane loops vectorise the divisions --
+/// the scalar loop is bound by one division per term, and the merge's root finder calls it about a
+/// dozen times per root (tensor4all/faer#354).
+fn secular_sum_f64<const N: usize>(
+	d: &[f64],
+	z: &[f64],
+	shift: [f64; N],
+	mu: [f64; N],
+) -> [f64; N] {
+	struct Impl<'a, const N: usize> {
+		d: &'a [f64],
+		z: &'a [f64],
+		shift: [f64; N],
+		mu: [f64; N],
+	}
+	impl<const N: usize> pulp::WithSimd for Impl<'_, N> {
+		type Output = [f64; N];
+
+		#[inline(always)]
+		fn with_simd<S: pulp::Simd>(self, _simd: S) -> [f64; N] {
+			let Self { d, z, shift, mu } = self;
+			let mut acc = [[0.0f64; SECULAR_LANES]; N];
+			let (d_head, d_tail) =
+				d.split_at(d.len() / SECULAR_LANES * SECULAR_LANES);
+			let (z_head, z_tail) = z.split_at(d_head.len());
+			for (d, z) in core::iter::zip(
+				d_head.chunks_exact(SECULAR_LANES),
+				z_head.chunks_exact(SECULAR_LANES),
+			) {
+				for q in 0..N {
+					for l in 0..SECULAR_LANES {
+						acc[q][l] += z[l] * (z[l] / ((d[l] - shift[q]) - mu[q]));
+					}
+				}
+			}
+			let mut out = [0.0f64; N];
+			for q in 0..N {
+				let a = &acc[q];
+				let mut res = ((a[0] + a[4]) + (a[2] + a[6]))
+					+ ((a[1] + a[5]) + (a[3] + a[7]));
+				for (d, z) in core::iter::zip(d_tail, z_tail) {
+					res += z * (z / ((d - shift[q]) - mu[q]));
+				}
+				out[q] = res;
+			}
+			out
+		}
+	}
+	pulp::Arch::new().dispatch(Impl { d, z, shift, mu })
+}
 fn batch_secular_eq<const N: usize, T: RealField>(
 	ref shift: &[T; N],
 	ref mu: &[T; N],
@@ -249,6 +329,15 @@ fn batch_secular_eq<const N: usize, T: RealField>(
 	z: ColRef<'_, T, usize, ContiguousFwd>,
 	ref rho_recip: T,
 ) -> [T; N] {
+	if const { T::IS_NATIVE_F64 } && d.nrows() >= SECULAR_SIMD_MIN {
+		// SAFETY: `T` is `f64`, checked above; both columns are contiguous
+		let (d, z) = unsafe { as_f64_slices(d, z) };
+		let shift: [f64; N] = shift.each_ref().map(|x| unsafe { core::mem::transmute_copy(x) });
+		let mu: [f64; N] = mu.each_ref().map(|x| unsafe { core::mem::transmute_copy(x) });
+		let rho_recip: f64 = unsafe { core::mem::transmute_copy(rho_recip) };
+		let res = secular_sum_f64::<N>(d, z, shift, mu);
+		return res.map(|x| unsafe { core::mem::transmute_copy(&(rho_recip + x)) });
+	}
 	with_dim!(n, d.nrows());
 	let d = d.as_row_shape(n);
 	let z = z.as_row_shape(n);
