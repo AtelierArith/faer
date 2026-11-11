@@ -8,18 +8,29 @@ use faer::linalg::pfaffian::{
 use reborrow::*;
 
 fn residual<T: ComplexField>(a: MatRef<'_, T>, inverse: MatRef<'_, T>) {
+	let infinity_norm = |a: MatRef<'_, T>| {
+		let mut maximum = zero::<T::Real>();
+		for i in 0..a.nrows() {
+			let mut sum = zero::<T::Real>();
+			for j in 0..a.ncols() {
+				sum = &sum + a[(i, j)].abs();
+			}
+			maximum = maximum.fmax(sum);
+		}
+		maximum
+	};
 	let identity = Mat::<T>::identity(a.nrows(), a.nrows());
-	let error = (&a * &inverse - identity).norm_l2();
+	let error = (&a * &inverse - identity).norm_max();
 	// n products per residual entry, normalized by the operand norms.
 	let bound = eps::<T::Real>()
 		* from_f64::<T::Real>(64.0 * a.nrows().max(1) as f64)
-		* a.norm_l2()
-		* inverse.norm_l2();
+		* infinity_norm(a)
+		* infinity_norm(inverse);
 	assert!(
 		error <= bound,
 		"inverse residual {error:?}, bound {bound:?}"
 	);
-	let skew_error = (inverse + inverse.transpose()).norm_l2();
+	let skew_error = (inverse + inverse.transpose()).norm_max();
 	assert!(
 		skew_error <= bound,
 		"plain-transpose skew error {skew_error:?}"
@@ -72,7 +83,7 @@ fn all_contracts<T: ComplexField>(
 	);
 	residual(a.as_ref(), inverse.as_ref());
 
-	for n in [2, 6, 34, 66, 130] {
+	for n in [2, 6, 34, 64, 66, 128, 130, 256] {
 		let base = Mat::from_fn(n, n, |i, j| {
 			let (row, col) = if i > j { (i, j) } else { (j, i) };
 			let value = if i == j {

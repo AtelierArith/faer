@@ -13,6 +13,9 @@ factors remain private; downstream code has no need to depend on their storage.
 Input authority, plain-transpose complex arithmetic and input preservation
 follow the existing Pfaffian. Outputs are unspecified on failure. No thread
 team is created internally and no new parallel split is introduced.
+The square work matrices reuse the module's established cache-line padding
+at 1 KiB leading dimensions. Empty and odd dimensions need no scratch because
+the combined call returns before allocating work matrices.
 
 Numerical failure is an explicit result, including nonrepresentable intermediate
 arithmetic. A native complex reciprocal can become zero after denominator-norm

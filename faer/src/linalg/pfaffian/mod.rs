@@ -434,9 +434,13 @@ fn pfaffian_impl<const FACTOR: bool, T: ComplexField>(
 /// # Ok::<(), faer::linalg::pfaffian::PfaffianError>(())
 /// ```
 pub fn pfaffian_inverse_scratch<T: ComplexField>(n: usize) -> StackReq {
-	linalg::temp_mat_scratch::<T>(n, n)
-		.and(linalg::temp_mat_scratch::<T>(n, n))
-		.and(linalg::temp_mat_scratch::<T>(n, n))
+	if n == 0 || n % 2 != 0 {
+		return StackReq::EMPTY;
+	}
+	let rows = work_rows::<T>(n);
+	linalg::temp_mat_scratch::<T>(rows, n)
+		.and(linalg::temp_mat_scratch::<T>(rows, n))
+		.and(linalg::temp_mat_scratch::<T>(rows, n))
 		.and(linalg::temp_mat_scratch::<T>(n / 2, 1))
 		.and(StackReq::new::<usize>(n))
 		.and(pfaffian_scratch::<T>(n))
@@ -457,9 +461,8 @@ pub fn pfaffian_inverse_scratch<T: ComplexField>(n: usize) -> StackReq {
 /// Returns [`PfaffianError::NonSquare`] or [`PfaffianError::OddDimension`] for
 /// an invalid input shape, [`PfaffianError::ZeroPivot`] for an exactly zero
 /// pivot, and [`PfaffianError::NumericalFailure`] for nonfinite lower-triangle
-/// input, arithmetic, a Pfaffian product or nonzero pivot reciprocal
-/// underflowing to zero, or an inverse
-/// that this factorization cannot represent finitely. A representable
+/// input, arithmetic, a nonzero Pfaffian product or pivot reciprocal evaluating
+/// to zero, or an inverse that this factorization cannot represent finitely. A representable
 /// mathematical result does not guarantee that intermediates are representable.
 ///
 /// # Panics
@@ -498,18 +501,27 @@ pub fn pfaffian_inverse<T: ComplexField>(
 	if n == 0 {
 		return Ok(one());
 	}
+	// Use the module's established cache-line padding for strided row accesses.
+	let rows = work_rows::<T>(n);
+	// SAFETY: factorization initializes the n-by-n view before any read; padding
+	// is excluded from that view and is never read.
 	let (mut lower, stack) =
-		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(rows, n, stack) };
+	// SAFETY: triangular inversion writes the strict lower half; the loop below
+	// initializes its diagonal and upper half before the rectangular reads.
 	let (mut inverse_l, stack) =
-		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(rows, n, stack) };
+	// SAFETY: the paired row loop writes every entry of the n-by-n view before
+	// the product reads it. Padding is outside the view.
 	let (mut weighted, stack) =
-		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(rows, n, stack) };
+	// SAFETY: factorization writes every paired pivot before the reciprocal loop.
 	let (mut diagonal, stack) =
 		unsafe { linalg::temp_mat_uninit::<T, _, _>(n / 2, 1, stack) };
 	let (mut permutation, stack) = stack.make_with(n, |i| i);
-	let mut lower = lower.as_mat_mut();
-	let mut inverse_l = inverse_l.as_mat_mut();
-	let mut weighted = weighted.as_mat_mut();
+	let mut lower = lower.as_mat_mut().subrows_mut(0, n);
+	let mut inverse_l = inverse_l.as_mat_mut().subrows_mut(0, n);
+	let mut weighted = weighted.as_mat_mut().subrows_mut(0, n);
 	let mut diagonal = diagonal.as_mat_mut();
 	// Factor initializes every lower entry, every diagonal and permutation.
 	let value = pfaffian_factor(
