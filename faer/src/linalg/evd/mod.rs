@@ -3726,6 +3726,41 @@ mod dense_range_tests {
 		}
 	}
 
+	/// `H diag(1, ..., n) H` for the Householder reflection `H = I - 2 v v^T /
+	/// (v^T v)`, `v = [1, ..., n]`: a dense symmetric matrix with the distinct
+	/// eigenvalues `1, ..., n`, so nothing deflates in divide-and-conquer
+	fn distinct_spectrum<T: ComplexField<Real = f64>>(
+		n: usize,
+	) -> (Mat<T>, Vec<f64>) {
+		let v: Vec<f64> = (1..=n).map(|k| k as f64).collect();
+		let vv: f64 = v.iter().map(|x| x * x).sum();
+		let h = Mat::<f64>::from_fn(n, n, |i, j| {
+			(if i == j { 1.0 } else { 0.0 }) - 2.0 * v[i] * v[j] / vv
+		});
+		let unit = Mat::<f64>::from_fn(n, n, |i, j| {
+			(0..n).map(|k| h[(i, k)] * v[k] * h[(k, j)]).sum::<f64>()
+		});
+		(
+			Mat::<T>::from_fn(n, n, |i, j| from_real::<T>(&unit[(i, j)])),
+			v,
+		)
+	}
+
+	/// `tensor4all/faer#398`: the range scaling above lifts `sqrt(min_positive)`
+	/// -sized input (the LAPACK test kind 7) to just over the tridiagonal
+	/// solver's normalization threshold, where divide-and-conquer used to
+	/// skip its own normalization and lose the spectrum (its secular equation
+	/// forms `rho * z^2`, which is about `anorm^3`)
+	#[test]
+	fn dense_symmetric_sqrt_min_positive_divide_and_conquer() {
+		for n in [9, 10, 16] {
+			let (unit, exact) = distinct_spectrum::<f64>(n);
+			// `sqrt(MIN_POSITIVE)` is the power of two `2^-511`
+			let s = f64::MIN_POSITIVE.sqrt();
+			check(unit.as_ref(), s, &exact, 1e-9);
+		}
+	}
+
 	/// the reported complex matrix `s * v v^H`: eigenvalues `s * [0, 0, 3]`;
 	/// the bug returned `[s, s, s]`
 	#[test]

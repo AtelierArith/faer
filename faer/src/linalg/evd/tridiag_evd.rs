@@ -11,14 +11,20 @@ use linalg::svd::bidiag_svd::secular_eq_root_finder;
 /// eigenvalues back to the input scale. LAPACK's `dsteqr` rescales `anorm` the
 /// same way: a spectrum that is finite can still overflow a shift or underflow
 /// a reciprocal.
+///
+/// `lo` is the smallest norm left alone: below it the algorithm's smallest
+/// intermediate (`(eps * anorm)^k`, with `k` its degree in the entries) would
+/// underflow. The QR algorithm squares entries (`k = 2`); divide-and-conquer
+/// forms `rho * z^2` in its secular equation (`k = 3`; it passes a larger `lo`), see
+/// `tensor4all/faer#398`.
 fn normalize_range<T: RealField>(
 	diag: &mut ColMut<'_, T, usize, ContiguousFwd>,
 	offdiag: &mut ColMut<'_, T, usize, ContiguousFwd>,
+	lo: T,
 ) -> T {
 	let ref anorm = diag.rb().norm_max().fmax(offdiag.rb().norm_max());
-	// below `lo` the square of an entry of size `eps * anorm` underflows, above
-	// `hi` an entry squared overflows
-	let ref lo = min_positive::<T>().sqrt() / eps::<T>();
+	// above `hi` an entry squared overflows
+	let ref lo = lo;
 	let ref hi = max_positive::<T>().sqrt();
 	if *anorm == zero() || (*anorm > *lo && *anorm < *hi) {
 		return one();
@@ -51,7 +57,11 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	}
 	let ref eps = eps::<T>();
 	let ref sml = min_positive::<T>();
-	let ref scale = normalize_range(&mut diag, &mut offdiag);
+	let ref scale = normalize_range(
+		&mut diag,
+		&mut offdiag,
+		min_positive::<T>().sqrt() / eps,
+	);
 	if n == 2 {
 		let ref a = diag[0].copy();
 		let ref d = diag[1].copy();
@@ -670,7 +680,13 @@ pub(crate) fn divide_and_conquer<T: RealField>(
 	qr_fallback_threshold: usize,
 ) -> Result<(), EvdError> {
 	let n = diag.nrows();
-	let ref scale = normalize_range(&mut diag, &mut offdiag);
+	let ref scale = normalize_range(
+		&mut diag,
+		&mut offdiag,
+		// the fourth root bounds the cube root from above, and `RealField` has
+		// no cube root
+		min_positive::<T>().sqrt().sqrt() / eps::<T>(),
+	);
 	let (mut pl_before, stack) = stack.make_with(n, |_| 0usize);
 	let (mut pl_after, stack) = stack.make_with(n, |_| 0usize);
 	let (mut pr, stack) = stack.make_with(n, |_| 0usize);
