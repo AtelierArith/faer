@@ -67,8 +67,21 @@ allocation".
   (`faer/src/linalg/svd/mod.rs:741`).
 
 The fork keeps faer's `*_in_place` names and adds no `*_into` variants; do not rename them in review
-(`docs/review-rules.md:14`). The in-place form is the one that allocates nothing: it is what the
-owning wrappers call internally, with a `MemBuffer` they build themselves (`solvers.rs:1205`).
+(`docs/review-rules.md:14`). The in-place form lets the caller reuse the routine's work matrices;
+owning wrappers build that `MemBuffer` themselves (`solvers.rs:1205`). Packing allocations still
+depend on the selected multiplication backend; the allocation tests state their platform scope.
+
+### Pfaffian and inverse of a skew matrix
+
+`faer::linalg::pfaffian::pfaffian_inverse(a, out, par, stack)` returns the Pfaffian and writes
+the true inverse using one paired reduction and faer's triangular inverse/product. It is a
+downstream-branch extension, not an API in the crates.io 0.32.0 release. The strict lower triangle
+of the input view defines the matrix; the input is preserved and complex skew symmetry uses a
+plain transpose, without conjugation. Arbitrary input/output views are accepted. Reuse a
+`MemBuffer` sized by `pfaffian_inverse_scratch::<T>(n)`; that query depends only on n, not the team
+width. The output is unspecified on error. `NumericalFailure` includes nonrepresentable
+intermediates even when the mathematical inverse exists; the API reference has runnable examples
+and the complete shape/pivot/error contract. Use `pfaffian` when no inverse is needed.
 
 ### Sizing the workspace
 
@@ -80,12 +93,12 @@ let mut mem = MemBuffer::new(req);
 let mut stack = MemStack::new(&mut mem);
 ```
 
-`*_scratch` functions take a `ParShape` (the width, without the authority to run anything), not a
+Most `*_scratch` functions take a `ParShape` (the width, without the authority to run anything), not a
 `Par` (`docs/par-team-migration.md:44`). Combine several requirements with `StackReq::any_of(&[...])`,
 as `faer/src/linalg/qr/mod.rs:63` does. `MemStack`, `MemBuffer` and `StackReq` are re-exported from
 `faer::dyn_stack` (`faer/src/lib.rs:1431`). A caller-held `MemBuffer` reused across calls is the
-route to a steady-state call that allocates nothing; `faer/tests/svd_values_no_alloc.rs` and
-`faer/tests/no_step_alloc.rs` are the contracts.
+route to reusing the routine's matrices; `faer/tests/svd_values_no_alloc.rs` and
+`faer/tests/no_step_alloc.rs` establish steady-state allocation behavior for their covered backends.
 
 ## Solving
 

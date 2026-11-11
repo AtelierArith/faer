@@ -135,8 +135,49 @@ const PANEL: usize = 24;
 /// ```
 pub fn pfaffian<T: ComplexField>(
 	a: MatRef<'_, T>,
+	par: Par<'_>,
+	stack: &mut MemStack,
+) -> Result<T, PfaffianError> {
+	pfaffian_impl::<false, T>(a, par, stack, None)
+}
+
+/// Computes a Pfaffian and the paired skew factorization in one reduction.
+///
+/// On success, `a[perm,perm] = lower * D * lower.transpose()`, where `lower`
+/// is unit lower triangular and `D[2k+1,2k] = diagonal[k]`,
+/// `D[2k,2k+1] = -diagonal[k]`. Transposes do not conjugate complex entries.
+/// The permutation maps factor positions to original input row indices.
+/// Input, errors and workspace requirements are the same as [`pfaffian`].
+/// Output buffers are unspecified on error. Panics if output sizes differ
+/// from `n*n`, `n`, and `n/2`, respectively.
+fn pfaffian_factor<T: ComplexField>(
+	a: MatRef<'_, T>,
+	lower: MatMut<'_, T>,
+	permutation: &mut [usize],
+	diagonal: &mut [T],
+	par: Par<'_>,
+	stack: &mut MemStack,
+) -> Result<T, PfaffianError> {
+	let n = a.nrows();
+	crate::assert!(all(
+		lower.nrows() == n,
+		lower.ncols() == n,
+		permutation.len() == n,
+		diagonal.len() == n / 2
+	));
+	pfaffian_impl::<true, T>(
+		a,
+		par,
+		stack,
+		Some((lower, permutation, diagonal)),
+	)
+}
+
+fn pfaffian_impl<const FACTOR: bool, T: ComplexField>(
+	a: MatRef<'_, T>,
 	mut par: Par<'_>,
 	stack: &mut MemStack,
+	mut output: Option<(MatMut<'_, T>, &mut [usize], &mut [T])>,
 ) -> Result<T, PfaffianError> {
 	let n = a.nrows();
 	if n != a.ncols() {
@@ -150,6 +191,14 @@ pub fn pfaffian<T: ComplexField>(
 	}
 	if !valid_input(a, par.reborrow()) {
 		return Err(PfaffianError::NumericalFailure);
+	}
+	if FACTOR {
+		let (lower, _, _) = output.as_mut().unwrap();
+		for j in 0..n {
+			for i in 0..n {
+				lower[(i, j)] = if i == j { one() } else { zero() };
+			}
+		}
 	}
 	// SAFETY: the first panel reads input. Completed updates initialize both
 	// orientations of surviving pairs; later panels gather only live entries.
@@ -235,6 +284,14 @@ pub fn pfaffian<T: ComplexField>(
 			if pivot != k + 1 {
 				perm.swap(k + 1, pivot);
 				odd_permutation = !odd_permutation;
+				if FACTOR {
+					let (lower, _, _) = output.as_mut().unwrap();
+					for j in 0..k {
+						let x = lower[(k + 1, j)].copy();
+						lower[(k + 1, j)] = lower[(pivot, j)].copy();
+						lower[(pivot, j)] = x;
+					}
+				}
 				// Relabel the finished panel columns: compact row `i` must stay
 				// the physical row `perm[start + i]`. Rows `ki + 1..` of those
 				// columns are initialized, so nothing uninitialized moves.
@@ -299,6 +356,20 @@ pub fn pfaffian<T: ComplexField>(
 					dst[i] = &dst[i] / &d;
 				}
 			}
+			if FACTOR {
+				let (lower, _, diagonal) = output.as_mut().unwrap();
+				diagonal[k / 2] = d.copy();
+				let panel = factors.rb().subrows(0, live).subcols(0, cols);
+				for r in k + 2..n {
+					let left = -&panel[(r - start, ki + 1)] / &d;
+					let right = panel[(r - start, ki)].copy();
+					if !left.is_finite() || !right.is_finite() {
+						return Err(PfaffianError::NumericalFailure);
+					}
+					lower[(r, k)] = left;
+					lower[(r, k + 1)] = right;
+				}
+			}
 		}
 		if end < n {
 			let remaining = &perm[end..];
@@ -334,7 +405,176 @@ pub fn pfaffian<T: ComplexField>(
 	if !value.is_finite() || value == zero() {
 		return Err(PfaffianError::NumericalFailure);
 	}
+	if FACTOR {
+		let (_, permutation, _) = output.as_mut().unwrap();
+		permutation.copy_from_slice(&perm);
+	}
 	Ok(if odd_permutation { -value } else { value })
+}
+
+/// Scratch for [`pfaffian_inverse`], including retained paired factors.
+///
+/// The query covers sequential and caller-owned team execution. It includes
+/// the work copy, unit-lower factors, triangular inverse, diagonal and permutation.
+///
+/// # Examples
+/// ```
+/// use dyn_stack::{MemBuffer, MemStack};
+/// use faer::linalg::pfaffian::{pfaffian_inverse, pfaffian_inverse_scratch};
+/// use faer::{Mat, Par, mat};
+/// let mut memory = MemBuffer::new(pfaffian_inverse_scratch::<f64>(2));
+/// let mut inverse = Mat::<f64>::zeros(2, 2);
+/// for value in [2.0, 3.0] {
+///     let a = mat![[0.0, value], [-value, 0.0]];
+///     let pf = pfaffian_inverse(a.as_ref(), inverse.as_mut(), Par::Seq,
+///         MemStack::new(&mut memory))?;
+///     assert!((pf - value).abs() <= 1e-14);
+///     assert!((inverse[(0, 1)] + 1.0 / value).abs() <= 1e-14);
+/// }
+/// # Ok::<(), faer::linalg::pfaffian::PfaffianError>(())
+/// ```
+pub fn pfaffian_inverse_scratch<T: ComplexField>(n: usize) -> StackReq {
+	linalg::temp_mat_scratch::<T>(n, n)
+		.and(linalg::temp_mat_scratch::<T>(n, n))
+		.and(linalg::temp_mat_scratch::<T>(n, n))
+		.and(linalg::temp_mat_scratch::<T>(n / 2, 1))
+		.and(StackReq::new::<usize>(n))
+		.and(pfaffian_scratch::<T>(n))
+}
+
+/// Computes the Pfaffian and true inverse using one paired skew reduction.
+///
+/// Input authority and numerical errors follow [`pfaffian`]. The output is
+/// skew-symmetric without conjugation; it is unspecified on error. Panics
+/// unless `out` has the same square dimensions as `a`, or scratch is too small.
+/// The strict lower triangle defines the skew matrix; the input is preserved.
+/// Its diagonal and upper triangle are not read. The routine's matrices live
+/// in caller scratch; packing allocations follow the selected multiplication
+/// backend's policy. The parallel team belongs to the caller, as with
+/// [`pfaffian`].
+///
+/// # Errors
+/// Returns [`PfaffianError::NonSquare`] or [`PfaffianError::OddDimension`] for
+/// an invalid input shape, [`PfaffianError::ZeroPivot`] for an exactly zero
+/// pivot, and [`PfaffianError::NumericalFailure`] for nonfinite lower-triangle
+/// input, arithmetic, a Pfaffian product or nonzero pivot reciprocal
+/// underflowing to zero, or an inverse
+/// that this factorization cannot represent finitely. A representable
+/// mathematical result does not guarantee that intermediates are representable.
+///
+/// # Panics
+/// Panics if `out` does not have the same square shape as `a`, or `stack` is
+/// smaller than [`pfaffian_inverse_scratch`].
+///
+/// # Examples
+/// ```
+/// use dyn_stack::{MemBuffer, MemStack};
+/// use faer::linalg::pfaffian::{pfaffian_inverse, pfaffian_inverse_scratch};
+/// use faer::{Mat, Par, mat};
+/// let a = mat![[0.0, 2.0], [-2.0, 0.0]];
+/// let mut inverse = Mat::<f64>::zeros(2, 2);
+/// let mut memory = MemBuffer::new(pfaffian_inverse_scratch::<f64>(2));
+/// let pf = pfaffian_inverse(a.as_ref(), inverse.as_mut(), Par::Seq,
+///     MemStack::new(&mut memory))?;
+/// assert!((pf - 2.0).abs() <= 1e-14);
+/// assert!((inverse[(0, 1)] + 0.5).abs() <= 1e-14);
+/// # Ok::<(), faer::linalg::pfaffian::PfaffianError>(())
+/// ```
+pub fn pfaffian_inverse<T: ComplexField>(
+	a: MatRef<'_, T>,
+	mut out: MatMut<'_, T>,
+	mut par: Par<'_>,
+	stack: &mut MemStack,
+) -> Result<T, PfaffianError> {
+	use linalg::matmul::triangular::{BlockStructure, matmul};
+	let n = a.nrows();
+	if a.ncols() != n {
+		return Err(PfaffianError::NonSquare);
+	}
+	if n % 2 != 0 {
+		return Err(PfaffianError::OddDimension);
+	}
+	crate::assert!(all(out.nrows() == n, out.ncols() == n));
+	if n == 0 {
+		return Ok(one());
+	}
+	let (mut lower, stack) =
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+	let (mut inverse_l, stack) =
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+	let (mut weighted, stack) =
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(n, n, stack) };
+	let (mut diagonal, stack) =
+		unsafe { linalg::temp_mat_uninit::<T, _, _>(n / 2, 1, stack) };
+	let (mut permutation, stack) = stack.make_with(n, |i| i);
+	let mut lower = lower.as_mat_mut();
+	let mut inverse_l = inverse_l.as_mat_mut();
+	let mut weighted = weighted.as_mat_mut();
+	let mut diagonal = diagonal.as_mat_mut();
+	// Factor initializes every lower entry, every diagonal and permutation.
+	let value = pfaffian_factor(
+		a,
+		lower.rb_mut(),
+		&mut permutation,
+		diagonal
+			.rb_mut()
+			.col_mut(0)
+			.try_as_col_major_mut()
+			.unwrap()
+			.as_slice_mut(),
+		par.reborrow(),
+		stack,
+	)?;
+	// A native complex division can underflow to zero after its denominator
+	// norm overflows, despite finite inputs and a representable reciprocal.
+	// Reject that intermediate instead of publishing a finite zero inverse.
+	for k in 0..n / 2 {
+		let reciprocal = one::<T>() / &diagonal[(k, 0)];
+		if !reciprocal.is_finite() || reciprocal == zero::<T>() {
+			return Err(PfaffianError::NumericalFailure);
+		}
+	}
+	linalg::triangular_inverse::invert_unit_lower_triangular(
+		inverse_l.rb_mut(),
+		lower.rb(),
+		par.reborrow(),
+	);
+	// The triangular inverse writes the strict lower half; initialize the
+	// rest before reading it as a rectangular matrix below.
+	for j in 0..n {
+		for i in 0..=j {
+			inverse_l[(i, j)] = if i == j { one() } else { zero() };
+		}
+	}
+	for j in 0..n {
+		for k in (0..n).step_by(2) {
+			weighted[(k, j)] = &inverse_l[(k + 1, j)] / &diagonal[(k / 2, 0)];
+			weighted[(k + 1, j)] = -&inverse_l[(k, j)] / &diagonal[(k / 2, 0)];
+		}
+	}
+	matmul(
+		lower.rb_mut(),
+		BlockStructure::StrictTriangularLower,
+		Accum::Replace,
+		inverse_l.rb().transpose(),
+		BlockStructure::UnitTriangularUpper,
+		weighted.rb(),
+		BlockStructure::Rectangular,
+		one(),
+		par,
+	);
+	for j in 0..n {
+		out[(permutation[j], permutation[j])] = zero();
+		for i in j + 1..n {
+			let entry = lower[(i, j)].copy();
+			if !entry.is_finite() {
+				return Err(PfaffianError::NumericalFailure);
+			}
+			out[(permutation[i], permutation[j])] = entry.copy();
+			out[(permutation[j], permutation[i])] = -entry;
+		}
+	}
+	Ok(value)
 }
 
 /// The contiguous tile range `[first, last)` of the lower triangle, in row-major
@@ -730,6 +970,9 @@ fn utu2pfa<T: ComplexField>(pivots: ColMut<'_, T>) -> T {
 	}
 	dispatch!(Impl { pivots }, Impl, T)
 }
+
+#[cfg(test)]
+mod inverse_tests;
 
 #[cfg(test)]
 mod tests {

@@ -65,6 +65,30 @@ fn sample(m: usize, n: usize, seed: u64) -> Mat<f64> {
 	})
 }
 
+fn shared_inverse_allocations<T: faer::traits::ComplexField>(
+	a: &Mat<T>,
+	par: &mut Par<'_>,
+) -> (usize, usize) {
+	let n = a.nrows();
+	let mut out = Mat::<T>::zeros(n, n);
+	let mut memory = MemBuffer::new(
+		faer::linalg::pfaffian::pfaffian_inverse_scratch::<T>(n),
+	);
+	let counts = counted(|| {
+		std::hint::black_box(
+			faer::linalg::pfaffian::pfaffian_inverse(
+				std::hint::black_box(a.as_ref()),
+				out.as_mut(),
+				par.reborrow(),
+				MemStack::new(&mut memory),
+			)
+			.unwrap(),
+		);
+	});
+	std::hint::black_box(&out);
+	counts
+}
+
 // one test function: the counter is process wide, so nothing else may run while it counts
 #[test]
 fn parallel_regions_allocate_nothing() {
@@ -138,6 +162,63 @@ fn parallel_regions_allocate_nothing() {
 			});
 			assert!(parallel > 0, "Pfaffian, width {width}: no parallel region");
 			assert_eq!(allocs, 0, "Pfaffian, width {width}");
+
+			let (allocs, parallel) = shared_inverse_allocations(&a0, &mut par);
+			assert!(
+				parallel > 0,
+				"shared Pfaffian/inverse, width {width}: no parallel region"
+			);
+			assert_eq!(allocs, 0, "shared Pfaffian/inverse, width {width}");
+			let complex = Mat::from_fn(258, 258, |i, j| {
+				faer::c64::new(
+					a0[(i, j)],
+					a0[((i + 1) % 258, (j + 1) % 258)] * 0.125,
+				)
+			});
+			let (allocs, parallel) =
+				shared_inverse_allocations(&complex, &mut par);
+			assert!(
+				parallel > 0,
+				"complex shared Pfaffian/inverse, width {width}: no parallel region"
+			);
+			assert_eq!(
+				allocs, 0,
+				"complex shared Pfaffian/inverse, width {width}"
+			);
+			let single = Mat::from_fn(258, 258, |i, j| {
+				let paired = if i / 2 == j / 2 && i != j {
+					if i > j { 1.25 } else { -1.25 }
+				} else {
+					0.0
+				};
+				(a0[(i, j)] * 0.05 + paired) as f32
+			});
+			let (allocs, parallel) =
+				shared_inverse_allocations(&single, &mut par);
+			assert!(
+				parallel > 0,
+				"single shared Pfaffian/inverse, width {width}: no parallel region"
+			);
+			assert_eq!(
+				allocs, 0,
+				"single shared Pfaffian/inverse, width {width}"
+			);
+			let single_complex = Mat::from_fn(258, 258, |i, j| {
+				faer::c32::new(
+					single[(i, j)],
+					single[((i + 1) % 258, (j + 1) % 258)] * 0.125,
+				)
+			});
+			let (allocs, parallel) =
+				shared_inverse_allocations(&single_complex, &mut par);
+			assert!(
+				parallel > 0,
+				"single complex shared Pfaffian/inverse, width {width}: no parallel region"
+			);
+			assert_eq!(
+				allocs, 0,
+				"single complex shared Pfaffian/inverse, width {width}"
+			);
 
 			// a plain product on the team: the x86 kernel's parallel job tables come from the
 			// calling thread's workspace (faer#223), so the same shape again allocates nothing,

@@ -5,6 +5,14 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT (downstream branch): `pfaffian_inverse` and `pfaffian_inverse_scratch`
+  share the existing paired reduction with faer's triangular inverse/GEMM for
+  [AtelierArith/mvmc-rs#731](https://github.com/AtelierArith/mvmc-rs/issues/731).
+  Factors stay private. Native scalar contracts, exact scratch, reused/strided
+  buffers, nonfinite/underflow rejection and caller-owned teams are tested.
+  This is not a provider-main merge, registry release or public campaign
+  performance adoption. [Design and verification scope](docs/worklogs/2026-11-12-pfaffian-inverse.md).
+
 - EXPERIMENT: owned `Mat::row_capacity/col_capacity` and
   `Col/Row/Diag::capacity` expose the current allocation metadata without private
   layout assumptions ([#284](https://github.com/tensor4all/faer/issues/284)).
